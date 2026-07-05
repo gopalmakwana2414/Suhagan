@@ -89,7 +89,9 @@ export const getCart = async (
 
     const cart = await Cart.findOne({
       user: userId,
-    }).populate("items.product");
+    })
+      .populate("items.product")
+      .lean();
 
     if (!cart) {
       return res.status(200).json({

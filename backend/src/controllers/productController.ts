@@ -9,9 +9,7 @@ import {
   deleteFromCloudinary,
 } from "../services/cloudinaryService";
 
-// =====================================
-// CREATE PRODUCT
-// =====================================
+// admin adds a new product
 export const createProduct = async (
   req: Request,
   res: Response
@@ -172,9 +170,7 @@ export const createProduct = async (
   }
 };
 
-// =====================================
-// GET PRODUCTS
-// =====================================
+// list products for the shop page, with search/filter/sort + pagination
 export const getProducts = async (
   req: Request,
   res: Response
@@ -206,9 +202,7 @@ export const getProducts = async (
       isActive: true,
     };
 
-    // =========================
-    // SEARCH
-    // =========================
+    // text search across the fields customers actually search by
     if (search) {
       query.$or = [
         {
@@ -262,9 +256,7 @@ export const getProducts = async (
       ];
     }
 
-    // =========================
-    // CATEGORY FILTER
-    // =========================
+    // category can come in as either a slug or a name from the frontend
     if (category) {
       let categoryId = category;
 
@@ -291,9 +283,6 @@ export const getProducts = async (
       query.category = categoryId;
     }
 
-    // =========================
-    // PRICE FILTER
-    // =========================
     if (minPrice || maxPrice) {
       query.salePrice = {};
 
@@ -349,13 +338,17 @@ export const getProducts = async (
         };
     }
 
+    // .lean() skips hydrating full Mongoose documents since this is a
+    // read-only listing — noticeably lighter on CPU/memory once traffic
+    // picks up, and we don't need any of the document methods here.
     const products = await Product.find(
       query
     )
       .populate("category", "name")
       .sort(sortOption)
       .skip((page - 1) * limit)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     const totalProducts =
       await Product.countDocuments(
@@ -380,9 +373,7 @@ export const getProducts = async (
   }
 };
 
-// =====================================
-// GET PRODUCT BY SLUG
-// =====================================
+// single product page looks this up by slug
 export const getProductBySlug = async (
   req: Request,
   res: Response
@@ -392,7 +383,9 @@ export const getProductBySlug = async (
       await Product.findOne({
         slug: req.params.slug,
         isActive: true,
-      }).populate("category", "name");
+      })
+        .populate("category", "name")
+        .lean();
 
     if (!product) {
       return res.status(404).json({
@@ -408,9 +401,7 @@ export const getProductBySlug = async (
   }
 };
 
-// =====================================
-// UPDATE PRODUCT
-// =====================================
+// admin edits an existing product
 export const updateProduct = async (
   req: Request,
   res: Response
@@ -505,9 +496,7 @@ export const updateProduct = async (
   }
 };
 
-// =====================================
-// DELETE PRODUCT
-// =====================================
+// admin deletes a product (and its cloudinary images)
 export const deleteProduct = async (
   req: Request,
   res: Response

@@ -1,20 +1,23 @@
 "use client";
 
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/api";
 import { User } from "lucide-react";
 
 export default function AdminCustomersPage() {
-  const { data: customers = [], isLoading } = useQuery({
-    queryKey: ["admin-customers"],
+  const [page, setPage] = useState(1);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin-customers", page],
     queryFn: async () => {
-      // We use dashboard stats to get total users,
-      // For listing users, add a /admin/users route to backend
-      // For now fetch from a users endpoint
-      const res = await api.get("/admin/customers");
+      const res = await api.get(`/admin/customers?page=${page}&limit=20`);
       return res.data;
     },
   });
+
+  const customers = data?.users || [];
+  const totalPages = data?.totalPages || 1;
 
   return (
     <div className="space-y-6">
@@ -37,11 +40,6 @@ export default function AdminCustomersPage() {
           <div className="text-center py-16 text-gray-400">
             <User size={48} className="mx-auto mb-3 opacity-30" />
             <p>No customers found.</p>
-            <p className="text-sm mt-2">
-              Note: Add the{" "}
-              <code className="bg-gray-100 px-1 rounded">/admin/customers</code>{" "}
-              route to the backend to list users here.
-            </p>
           </div>
         ) : (
           <table className="w-full text-sm">
@@ -57,7 +55,9 @@ export default function AdminCustomersPage() {
             <tbody>
               {customers.map((user: any, i: number) => (
                 <tr key={user._id} className="border-t hover:bg-gray-50">
-                  <td className="p-4 text-gray-400">{i + 1}</td>
+                  <td className="p-4 text-gray-400">
+                    {(page - 1) * 20 + i + 1}
+                  </td>
                   <td className="p-4 font-medium">{user.name}</td>
                   <td className="p-4 text-gray-500">{user.email}</td>
                   <td className="p-4">
@@ -78,6 +78,28 @@ export default function AdminCustomersPage() {
               ))}
             </tbody>
           </table>
+        )}
+
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 p-4 border-t">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-3 py-1.5 border rounded-lg text-sm disabled:opacity-40 hover:bg-gray-50"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-gray-500">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-3 py-1.5 border rounded-lg text-sm disabled:opacity-40 hover:bg-gray-50"
+            >
+              Next
+            </button>
+          </div>
         )}
       </div>
     </div>

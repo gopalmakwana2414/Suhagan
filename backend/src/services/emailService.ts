@@ -1,33 +1,19 @@
 /**
- * ==========================================================
- * EMAIL SERVICE (Nodemailer / SMTP)
- * ==========================================================
- * Production email service for SUHAGAN. Replaces the previous
- * console-log placeholder. Sends via any standard SMTP provider
- * (Gmail SMTP, SendGrid, Mailgun, Amazon SES, Brevo, etc.) —
- * configure SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS /
- * EMAIL_FROM in your .env.
+ * Sends all our emails via SMTP (Nodemailer) — welcome, order
+ * confirmations, password reset, contact form, etc. Configure
+ * SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS / EMAIL_FROM in .env,
+ * works with Gmail, SendGrid, Mailgun, SES, Brevo, whatever you use.
  *
- * All send functions are safe to call without awaiting from a
- * request handler (the caller decides whether to await or fire
- * non-blocking with .catch()), and every function throws on
- * failure so callers can log/report it — but a broken email
- * provider should never crash the request that triggered it,
- * which is why every call site in this codebase wraps these in
- * try/catch or .catch().
- * ==========================================================
+ * Every function throws on failure instead of swallowing errors, so
+ * call sites wrap these in try/catch or .catch() rather than letting
+ * a broken email provider take down the request that triggered it.
  */
 
 import nodemailer from "nodemailer";
 import { env } from "../config/env";
 
-// ==========================================================
-// TRANSPORTER
-// ==========================================================
-// Lazily created so importing this module never throws even if
-// SMTP env vars aren't set yet (e.g. during local dev without
-// email configured) — the error only surfaces when an email is
-// actually attempted, with a clear message.
+// created lazily so just importing this file doesn't blow up if SMTP
+// env vars aren't set yet — only errors once you actually try to send
 let transporter: nodemailer.Transporter | null = null;
 
 const getTransporter = (): nodemailer.Transporter => {
@@ -81,9 +67,7 @@ const send = async (to: string, subject: string, html: string, text?: string) =>
   });
 };
 
-// ==========================================================
-// WELCOME EMAIL
-// ==========================================================
+// welcome email
 export const sendWelcomeEmail = async ({
   to,
   customerName,
@@ -104,9 +88,7 @@ export const sendWelcomeEmail = async ({
   await send(to, "Welcome to SUHAGAN 🌸", html);
 };
 
-// ==========================================================
-// OTP EMAIL
-// ==========================================================
+// otp email
 export const sendOTPEmail = async ({
   to,
   otp,
@@ -124,9 +106,7 @@ export const sendOTPEmail = async ({
   await send(to, "Your SUHAGAN verification code", html);
 };
 
-// ==========================================================
-// RESET PASSWORD EMAIL
-// ==========================================================
+// reset password email
 export const sendResetPasswordEmail = async ({
   to,
   customerName,
@@ -154,9 +134,7 @@ export const sendResetPasswordEmail = async ({
   await send(to, "Reset your SUHAGAN password", html);
 };
 
-// ==========================================================
-// ORDER STATUS UPDATE EMAIL
-// ==========================================================
+// order status update email
 export const sendOrderStatusEmail = async ({
   to,
   customerName,
@@ -181,9 +159,7 @@ export const sendOrderStatusEmail = async ({
   await send(to, `Order Update: ${status}`, html);
 };
 
-// ==========================================================
-// CUSTOMER ORDER CONFIRMATION EMAIL
-// ==========================================================
+// customer order confirmation email
 export const sendOrderConfirmationEmail = async (data: {
   to: string;
   customerName: string;
@@ -233,9 +209,7 @@ export const sendOrderConfirmationEmail = async (data: {
   await send(data.to, "Your SUHAGAN order is confirmed", html);
 };
 
-// ==========================================================
-// ADMIN NEW ORDER ALERT
-// ==========================================================
+// admin new order alert
 export const sendAdminOrderAlert = async (data: {
   orderId: string;
   customerName: string;
@@ -259,9 +233,7 @@ export const sendAdminOrderAlert = async (data: {
   await send(env.ADMIN_EMAIL, `New Order: ₹${data.totalAmount.toLocaleString("en-IN")}`, html);
 };
 
-// ==========================================================
-// CONTACT FORM EMAIL
-// ==========================================================
+// contact form email
 export const sendContactEmail = async (data: {
   name: string;
   email: string;

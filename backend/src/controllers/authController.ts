@@ -5,7 +5,7 @@ import { User } from "../models/User";
 import { generateToken } from "../utils/jwt";
 import { sendWelcomeEmail, sendResetPasswordEmail } from "../services/emailService";
 
-// REGISTER
+// register
 export const registerUser = async (req: Request, res: Response) => {
   try {
     const { name, email, password } = req.body;
@@ -43,7 +43,7 @@ export const registerUser = async (req: Request, res: Response) => {
   }
 };
 
-// LOGIN
+// login
 export const loginUser = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;
@@ -73,12 +73,8 @@ export const loginUser = async (req: Request, res: Response) => {
   }
 };
 
-// ==========================================================
-// FORGOT PASSWORD — request a reset link
-// ==========================================================
-// Always responds with the same generic success message whether or not
-// the email exists in the database. This prevents user enumeration
-// (an attacker probing which emails are registered).
+// forgot password — always returns the same message whether or not the
+// email exists, so we're not leaking which emails are registered
 export const forgotPassword = async (req: Request, res: Response) => {
   try {
     const { email } = req.body;
@@ -100,9 +96,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
       return res.status(200).json(genericResponse);
     }
 
-    // Generate a random raw token to email to the user, but only store
-    // its SHA-256 hash in the database (same principle as password
-    // hashing: a DB leak alone can't be used to reset accounts).
+    // only store a hash of the token, same idea as password hashing
     const rawToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = crypto
       .createHash("sha256")
@@ -122,8 +116,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
         resetUrl,
       });
     } catch (emailError: any) {
-      // Roll back the token if the email couldn't be sent, so a dead
-      // token isn't left sitting on the account.
+      // email failed, so clear the token instead of leaving a dead one
       user.resetPasswordToken = undefined;
       user.resetPasswordExpires = undefined;
       await user.save();
@@ -141,9 +134,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
   }
 };
 
-// ==========================================================
-// RESET PASSWORD — consume the token from the emailed link
-// ==========================================================
+// reset password — consume the token from the emailed link
 export const resetPassword = async (req: Request, res: Response) => {
   try {
     const { token } = req.params;

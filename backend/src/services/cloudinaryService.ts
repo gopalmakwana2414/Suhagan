@@ -2,9 +2,7 @@ import cloudinary from "../config/cloudinary";
 import streamifier from "streamifier";
 import { UploadApiResponse } from "cloudinary";
 
-// ==========================
-// UPLOAD SINGLE IMAGE
-// ==========================
+// upload single image
 export const uploadToCloudinary = (
   buffer: Buffer,
   folder: string
@@ -30,9 +28,7 @@ export const uploadToCloudinary = (
   });
 };
 
-// ==========================
-// DELETE IMAGE (NEW)
-// ==========================
+// delete image (new)
 export const deleteFromCloudinary = async (
   public_id: string
 ): Promise<void> => {
@@ -44,9 +40,7 @@ export const deleteFromCloudinary = async (
   }
 };
 
-// ==========================
-// UPLOAD MULTIPLE IMAGES (NEW)
-// ==========================
+// upload multiple images (new)
 export const uploadMultipleToCloudinary = async (
   files: Express.Multer.File[],
   folder: string

@@ -4,12 +4,8 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// BUG FIX: this file used the CommonJS-only globals `__dirname`/`__filename`,
-// but backend/package.json sets "type": "module", so this project runs as
-// native ESM under tsx — `__dirname` doesn't exist there and throws
-// `ReferenceError: __dirname is not defined in ES module scope` the moment
-// this module loads, before LOGO_PATH/SIGNATURE_PATH can even be computed.
-// This is the ESM-safe equivalent.
+// __dirname isn't available in ESM (package.json has "type": "module"),
+// so this is the ESM-safe way to get it
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -23,26 +19,14 @@ const PAGE_LEFT = 50;
 const PAGE_RIGHT = 545;
 const PAGE_WIDTH = PAGE_RIGHT - PAGE_LEFT;
 
-// ==========================================================
-// BRAND ASSETS
-// ==========================================================
-// Drop the real files in here to activate them — the invoice falls back
-// to a clean text rendering for either one that's missing, so it never
-// breaks while assets are being added:
-//   backend/src/assets/logo.png        (header — recommend white/transparent PNG)
-//   backend/src/assets/signature.png   (authorized signature — transparent PNG)
+// drop logo.png / signature.png in src/assets to use them — falls back
+// to plain text if either file is missing
 const LOGO_PATH = path.join(__dirname, "..", "assets", "logo.png");
 const SIGNATURE_PATH = path.join(__dirname, "..", "assets", "signature.png");
 
-// BUG FIX: pdfkit's built-in "Helvetica" fonts only support Latin/Western
-// characters. Any customer-entered text containing non-Latin script (e.g.
-// Hindi/Devanagari, common in Indian addresses) was silently rendered as
-// garbled bytes instead of throwing an error — that's the corrupted
-// "SHIPPING ADDRESS" text seen in production. Fields that come from user
-// input (name, address lines, phone, product names) now use this embedded
-// Unicode font instead of Helvetica. Noto Sans Devanagari also covers the
-// standard Latin block, so English-only addresses render identically to
-// before — this only changes behavior for the previously-broken case.
+// Helvetica can't render Hindi/Devanagari, so addresses with non-Latin
+// text came out as garbled bytes. This font covers both Devanagari and
+// standard Latin, so English addresses still look the same as before.
 const UNICODE_FONT_PATH = path.join(
   __dirname,
   "..",
@@ -107,20 +91,15 @@ export const generateInvoicePDF = (order: InvoiceOrder, res: Response) => {
 
   doc.pipe(res);
 
-  // Register the Unicode-safe font once; every field below that renders
-  // customer-entered text uses UNICODE_FONT instead of "Helvetica" so
-  // non-Latin characters render correctly instead of as garbled bytes.
-  // Falls back to Helvetica (Latin-only, same as before) if the font
-  // file hasn't been added yet, so the invoice never breaks.
+  // customer-entered fields use this font instead of Helvetica so
+  // non-Latin text renders correctly; falls back to Helvetica if missing
   const hasUnicodeFont = fs.existsSync(UNICODE_FONT_PATH);
   if (hasUnicodeFont) {
     doc.registerFont(UNICODE_FONT, UNICODE_FONT_PATH);
   }
   const safeFont = hasUnicodeFont ? UNICODE_FONT : "Helvetica";
 
-  // ==========================================================
-  // HEADER BAND
-  // ==========================================================
+  // header band
   const headerHeight = 118;
   doc.rect(0, 0, doc.page.width, headerHeight).fill(GOLD);
 
@@ -156,9 +135,7 @@ export const generateInvoicePDF = (order: InvoiceOrder, res: Response) => {
     .fillColor("#ffffff")
     .text("INVOICE", 0, 42, { align: "right", width: PAGE_RIGHT });
 
-  // ==========================================================
-  // META ROW — invoice #, date, status
-  // ==========================================================
+  // meta row — invoice #, date, status
   const metaTop = headerHeight + 30;
 
   const metaCol = (
@@ -202,9 +179,7 @@ export const generateInvoicePDF = (order: InvoiceOrder, res: Response) => {
     .lineWidth(1)
     .stroke();
 
-  // ==========================================================
-  // BILL TO / SHIP TO
-  // ==========================================================
+  // bill to / ship to
   const addrTop = metaTop + 68;
   const addr = order.shippingAddress;
 
@@ -260,9 +235,7 @@ export const generateInvoicePDF = (order: InvoiceOrder, res: Response) => {
       lineGap: 3,
     });
 
-  // ==========================================================
-  // ITEMS TABLE
-  // ==========================================================
+  // items table
   let tableTop = addrTop + 120;
 
   doc.rect(PAGE_LEFT, tableTop, PAGE_WIDTH, 28).fill(LIGHT_BG);
@@ -309,10 +282,8 @@ export const generateInvoicePDF = (order: InvoiceOrder, res: Response) => {
     .strokeColor(BORDER)
     .stroke();
 
-  // ==========================================================
-  // TOTALS — label column and value column no longer overlap
-  // (previously "GRAND TOTAL" and its value ran into each other).
-  // ==========================================================
+  // totals block — label and value columns kept apart so "GRAND TOTAL"
+  // doesn't run into its number like it used to
   const totalsLabelX = 300;
   const totalsLabelWidth = 155; // ends at x = 455
   const totalsValueX = 465;      // starts 10px after the label ends
@@ -379,9 +350,7 @@ export const generateInvoicePDF = (order: InvoiceOrder, res: Response) => {
       align: "right",
     });
 
-  // ==========================================================
-  // AUTHORIZED SIGNATURE
-  // ==========================================================
+  // authorized signature
   const signatureTop = totalsY + grandTotalBoxHeight + 60;
   const signatureExists = fs.existsSync(SIGNATURE_PATH);
 
@@ -419,9 +388,7 @@ export const generateInvoicePDF = (order: InvoiceOrder, res: Response) => {
       align: "center",
     });
 
-  // ==========================================================
-  // FOOTER
-  // ==========================================================
+  // footer
   const footerY = doc.page.height - 90;
 
   doc

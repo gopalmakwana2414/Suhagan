@@ -4,9 +4,7 @@ import { Cart } from "../models/Cart";
 import { Order } from "../models/Order";
 import { Address } from "../models/Address";
 
-// ===================================
-// CREATE ORDER FROM CART
-// ===================================
+// create order from cart
 export const createOrder = async (
   req: Request,
   res: Response
@@ -76,9 +74,7 @@ export const createOrder = async (
   }
 };
 
-// ===================================
-// GET MY ORDERS
-// ===================================
+// get my orders
 export const getMyOrders = async (
   req: Request,
   res: Response
@@ -107,9 +103,7 @@ export const getMyOrders = async (
   }
 };
 
-// ===================================
-// GET SINGLE ORDER
-// ===================================
+// get single order
 export const getOrderById =
   async (
     req: Request,
@@ -154,9 +148,7 @@ export const getOrderById =
     }
   };
 
-// ===================================
-// DOWNLOAD INVOICE PDF
-// ===================================
+// download invoice pdf
 import { generateInvoicePDF } from "../services/invoiceService";
 
 export const downloadInvoice = async (req: Request, res: Response) => {

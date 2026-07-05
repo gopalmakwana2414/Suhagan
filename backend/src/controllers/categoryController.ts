@@ -38,8 +38,12 @@ export const getCategories = async (
   res: Response
 ) => {
   try {
-    const categories = await Category.find();
+    const categories = await Category.find().lean();
 
+    // categories barely ever change, so let browsers/CDNs cache this for
+    // a minute instead of hitting the DB on every single page load —
+    // this one endpoint gets called from the navbar on every page
+    res.set("Cache-Control", "public, max-age=60, stale-while-revalidate=300");
     res.status(200).json(categories);
   } catch (error: any) {
     res.status(500).json({

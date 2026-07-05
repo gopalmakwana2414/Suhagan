@@ -28,6 +28,7 @@ export default function AdminOrdersPage() {
   const queryClient = useQueryClient();
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [downloadingInvoiceId, setDownloadingInvoiceId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   const handleDownloadInvoice = async (orderId: string) => {
     setDownloadingInvoiceId(orderId);
@@ -51,13 +52,16 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const { data: orders = [], isLoading } = useQuery({
-    queryKey: ["admin-orders"],
+  const { data, isLoading } = useQuery({
+    queryKey: ["admin-orders", page],
     queryFn: async () => {
-      const res = await api.get("/admin/orders");
+      const res = await api.get(`/admin/orders?page=${page}&limit=20`);
       return res.data;
     },
   });
+
+  const orders = data?.orders || [];
+  const totalPages = data?.totalPages || 1;
 
   const statusMutation = useMutation({
     mutationFn: async ({
@@ -204,6 +208,28 @@ export default function AdminOrdersPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 p-4 border-t">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-3 py-1.5 border rounded-lg text-sm disabled:opacity-40 hover:bg-gray-50"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-gray-500">
+              Page {page} of {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-3 py-1.5 border rounded-lg text-sm disabled:opacity-40 hover:bg-gray-50"
+            >
+              Next
+            </button>
           </div>
         )}
       </div>

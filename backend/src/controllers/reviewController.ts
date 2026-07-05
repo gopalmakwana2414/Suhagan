@@ -1,4 +1,5 @@
 import { Response } from "express";
+import mongoose from "mongoose";
 import { AuthRequest } from "../middlewares/auth";
 
 import { Review } from "../models/Review";
@@ -6,9 +7,7 @@ import { Product } from "../models/Product";
 
 
 
-// ==========================
-// CREATE REVIEW
-// ==========================
+// create review
 export const createReview = async (
   req: AuthRequest,
   res: Response
@@ -50,9 +49,7 @@ export const createReview = async (
 
 
 
-// ==========================
-// GET PRODUCT REVIEWS
-// ==========================
+// get product reviews
 export const getProductReviews = async (
   req: AuthRequest,
   res: Response
@@ -62,7 +59,9 @@ export const getProductReviews = async (
       product: req.params.productId,
     })
       .populate("user", "name")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .limit(200)
+      .lean();
 
     return res.status(200).json(reviews);
   } catch (error: any) {
@@ -74,9 +73,7 @@ export const getProductReviews = async (
 
 
 
-// ==========================
-// DELETE REVIEW (User or Admin)
-// ==========================
+// delete review (user or admin)
 export const deleteReview = async (
   req: AuthRequest,
   res: Response
@@ -119,23 +116,24 @@ export const deleteReview = async (
 
 
 
-// ==========================
-// UPDATE PRODUCT RATING
-// ==========================
+// update product rating
 const updateProductRatings = async (productId: string) => {
-  const reviews = await Review.find({
-    product: productId,
-  });
-
-  const numReviews = reviews.length;
-
-  const averageRating =
-    numReviews === 0
-      ? 0
-      : reviews.reduce((acc, item) => acc + item.rating, 0) / numReviews;
+  // let MongoDB compute the average/count instead of pulling every
+  // review into Node just to reduce() over them — same result, but
+  // doesn't get slower as a product's review count grows
+  const [stats] = await Review.aggregate([
+    { $match: { product: new mongoose.Types.ObjectId(productId) } },
+    {
+      $group: {
+        _id: "$product",
+        averageRating: { $avg: "$rating" },
+        numReviews: { $sum: 1 },
+      },
+    },
+  ]);
 
   await Product.findByIdAndUpdate(productId, {
-    averageRating: Math.round(averageRating * 10) / 10,
-    numReviews,
+    averageRating: stats ? Math.round(stats.averageRating * 10) / 10 : 0,
+    numReviews: stats ? stats.numReviews : 0,
   });
 };

@@ -73,10 +73,9 @@ export default function Hero() {
             </div>
           </div>
 
-          {/* Right Image — always sourced from Cloudinary via the backend
-              banner API, never a local file. Shows a loading skeleton while
-              fetching, and a branded placeholder (not a hardcoded image) if
-              no hero banner has been added in the admin panel yet. */}
+          {/* pulled from Cloudinary via the banner API, never a local file —
+              shows a skeleton while loading and a placeholder if no hero
+              banner has been added yet */}
           <div className="relative">
             {isLoading ? (
               <div className="rounded-3xl w-full h-[650px] bg-gray-100 animate-pulse" />

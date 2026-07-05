@@ -9,6 +9,7 @@ import { X, ImagePlus, Upload } from "lucide-react";
 import {
   productSchema,
   ProductFormData,
+  ProductFormInput,
 } from "@/lib/validations/product";
 
 import { useCategories } from "@/hooks/useCategories";
@@ -59,7 +60,7 @@ export default function ProductModal({ open, setOpen, product }: Props) {
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<ProductFormData>({
+  } = useForm<ProductFormInput, any, ProductFormData>({
     resolver: zodResolver(productSchema),
     defaultValues: DEFAULT_VALUES,
   });

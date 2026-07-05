@@ -12,9 +12,7 @@ import {
 
 const router = express.Router();
 
-// ====================================
-// ORDERS
-// ====================================
+// orders
 
 router.get(
   "/orders",
@@ -37,9 +35,7 @@ router.patch(
   updateOrderStatus
 );
 
-// ====================================
-// CUSTOMERS
-// ====================================
+// customers
 
 router.get(
   "/customers",

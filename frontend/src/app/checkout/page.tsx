@@ -151,12 +151,9 @@ export default function CheckoutPage() {
     setPlacingOrder(true);
 
     try {
-      // SECURITY: only send product IDs + quantities, never price or
-      // totalAmount. The backend now recomputes the real price from the
-      // database and ignores anything the client claims about cost — see
-      // paymentController.ts. Sending a client-computed total here was
-      // previously trusted as-is by the server, which meant a modified
-      // request could pay for a fraction of the order's real value.
+      // only send product id + quantity, never price — the backend
+      // works out the real price itself so a tampered request can't
+      // pay less than the actual cart total
       const orderItems = items.map((item) => ({
         product: item.product._id,
         quantity: item.quantity,

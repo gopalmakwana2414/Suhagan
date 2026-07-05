@@ -2,9 +2,7 @@ import { Request, Response } from "express";
 import { Wishlist } from "../models/Wishlist";
 import { Product } from "../models/Product";
 
-// ====================================
-// ADD TO WISHLIST
-// ====================================
+// add a product to the logged-in user's wishlist
 export const addToWishlist = async (
   req: Request,
   res: Response
@@ -58,9 +56,7 @@ export const addToWishlist = async (
   }
 };
 
-// ====================================
-// GET WISHLIST
-// ====================================
+// used on the wishlist page
 export const getWishlist = async (
   req: Request,
   res: Response
@@ -70,7 +66,7 @@ export const getWishlist = async (
 
     const wishlist = await Wishlist.findOne({
       user: userId,
-    }).populate("products");
+    }).populate("products").lean();
 
     if (!wishlist) {
       return res.status(200).json({
@@ -86,9 +82,7 @@ export const getWishlist = async (
   }
 };
 
-// ====================================
-// REMOVE FROM WISHLIST
-// ====================================
+// remove one product from the wishlist
 export const removeFromWishlist = async (
   req: Request,
   res: Response

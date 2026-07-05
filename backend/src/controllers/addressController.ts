@@ -1,9 +1,7 @@
 import { Request, Response } from "express";
 import { Address } from "../models/Address";
 
-// =================================
-// CREATE ADDRESS
-// =================================
+// create address
 export const createAddress = async (
   req: Request,
   res: Response
@@ -51,9 +49,7 @@ export const createAddress = async (
   }
 };
 
-// =================================
-// GET ALL ADDRESSES
-// =================================
+// get all addresses
 export const getAddresses = async (
   req: Request,
   res: Response
@@ -73,9 +69,7 @@ export const getAddresses = async (
   }
 };
 
-// =================================
-// UPDATE ADDRESS
-// =================================
+// update address
 export const updateAddress = async (
   req: Request,
   res: Response
@@ -119,9 +113,7 @@ export const updateAddress = async (
   }
 };
 
-// =================================
-// SET DEFAULT ADDRESS
-// =================================
+// set default address
 export const setDefaultAddress = async (
   req: Request,
   res: Response
@@ -161,9 +153,7 @@ export const setDefaultAddress = async (
   }
 };
 
-// =================================
-// DELETE ADDRESS
-// =================================
+// delete address
 export const deleteAddress = async (
   req: Request,
   res: Response

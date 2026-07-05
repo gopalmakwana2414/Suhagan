@@ -47,8 +47,8 @@ const reviewSchema = new Schema<IReview>(
 
 reviewSchema.index(
   {
-    user: 1,
     product: 1,
+    user: 1,
   },
   {
     unique: true,

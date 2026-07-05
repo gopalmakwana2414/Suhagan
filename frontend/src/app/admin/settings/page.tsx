@@ -26,8 +26,8 @@ export default function AdminSettingsPage() {
   });
 
   const handleSave = () => {
-    // NOTE: This currently saves only in local state.
-    // To persist, create a Settings model + /api/settings route in backend.
+    // only saves to local state for now — needs a Settings model +
+    // /api/settings route on the backend to actually persist
     toast.success("Settings saved locally. Connect a Settings API to persist these.");
   };
 

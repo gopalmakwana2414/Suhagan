@@ -13,17 +13,13 @@ import {
 
 const router = express.Router();
 
-// ==============================
-// PUBLIC ROUTES
-// ==============================
+// public routes
 
 router.get("/", getProducts);
 
 router.get("/:slug", getProductBySlug);
 
-// ==============================
-// ADMIN ROUTES
-// ==============================
+// admin routes
 
 router.post(
   "/",

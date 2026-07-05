@@ -3,17 +3,29 @@ import { Order } from "../models/Order";
 import { User } from "../models/User";
 import { sendOrderStatusEmail } from "../services/emailService";
 
-// ====================================
-// GET ALL ORDERS
-// ====================================
+// get all orders
 export const getAllOrders = async (req: Request, res: Response) => {
   try {
-    const orders = await Order.find()
-      .populate("user", "name email")
-      .populate("shippingAddress")
-      .sort({ createdAt: -1 });
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(Number(req.query.limit) || 20, 100);
 
-    return res.status(200).json(orders);
+    const [orders, totalOrders] = await Promise.all([
+      Order.find()
+        .populate("user", "name email")
+        .populate("shippingAddress")
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      Order.countDocuments(),
+    ]);
+
+    return res.status(200).json({
+      orders,
+      currentPage: page,
+      totalPages: Math.max(1, Math.ceil(totalOrders / limit)),
+      totalOrders,
+    });
   } catch (error: any) {
     return res.status(500).json({
       message: error.message,
@@ -21,9 +33,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
   }
 };
 
-// ====================================
-// GET ORDER BY ID
-// ====================================
+// get order by id
 export const getOrderByIdAdmin = async (req: Request, res: Response) => {
   try {
     const order = await Order.findById(req.params.id)
@@ -45,9 +55,7 @@ export const getOrderByIdAdmin = async (req: Request, res: Response) => {
   }
 };
 
-// ====================================
-// UPDATE ORDER STATUS
-// ====================================
+// update order status
 export const updateOrderStatus = async (req: Request, res: Response) => {
   try {
     const { status } = req.body;
@@ -107,16 +115,28 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
   }
 };
 
-// ====================================
-// GET ALL CUSTOMERS (Users)
-// ====================================
+// get all customers (users)
 export const getAllCustomers = async (req: Request, res: Response) => {
   try {
-    const users = await User.find()
-      .select("-password")
-      .sort({ createdAt: -1 });
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const limit = Math.min(Number(req.query.limit) || 20, 100);
 
-    return res.status(200).json(users);
+    const [users, totalUsers] = await Promise.all([
+      User.find()
+        .select("-password")
+        .sort({ createdAt: -1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean(),
+      User.countDocuments(),
+    ]);
+
+    return res.status(200).json({
+      users,
+      currentPage: page,
+      totalPages: Math.max(1, Math.ceil(totalUsers / limit)),
+      totalUsers,
+    });
   } catch (error: any) {
     return res.status(500).json({
       message: error.message,

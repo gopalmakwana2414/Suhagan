@@ -14,18 +14,9 @@ import {
 const FREE_SHIPPING_THRESHOLD = 999;
 const SHIPPING_FEE = 99;
 
-// =====================================
-// SERVER-SIDE TOTALS RECOMPUTATION
-// =====================================
-// SECURITY: never trust price/totalAmount sent by the client. Previously,
-// the client computed the cart total in the browser and sent it straight
-// to /payment/create-order and /payment/verify — meaning a modified request
-// could create a Razorpay order for ₹1 and then submit orderData claiming
-// a ₹50,000 order, and the server would have saved it as paid with no
-// cross-check. This helper is the single source of truth for what an
-// order actually costs: it re-fetches each product's real price and stock
-// from the database and re-validates any coupon, rather than trusting
-// anything the client claims about pricing.
+// recalculates the cart total from the DB every time instead of trusting
+// whatever price the client sends — otherwise someone could just edit the
+// request and pay ₹1 for a ₹50,000 order
 const calculateOrderTotals = async (
   items: { product: string; quantity: number }[],
   couponCode?: string
@@ -103,9 +94,7 @@ const calculateOrderTotals = async (
   };
 };
 
-// =====================================
-// HELPER — Send order emails (non-blocking)
-// =====================================
+// fires confirmation + admin alert emails, doesn't block the response
 const sendOrderEmails = async (order: any) => {
   try {
     const user = await User.findById(order.user);
@@ -151,13 +140,8 @@ const sendOrderEmails = async (order: any) => {
   }
 };
 
-// =====================================
-// CREATE RAZORPAY ORDER
-// =====================================
-// Client now sends only { items, couponCode } — the cart contents, not a
-// price. The amount charged is entirely computed here from real product
-// data, so nothing the client sends can change what Razorpay actually
-// collects.
+// client only sends cart items + coupon code here, never a price —
+// the amount charged is worked out server-side
 export const createRazorpayOrder = async (req: Request, res: Response) => {
   try {
     const { items, couponCode } = req.body;
@@ -188,9 +172,7 @@ export const createRazorpayOrder = async (req: Request, res: Response) => {
   }
 };
 
-// =====================================
-// VERIFY PAYMENT & CREATE ORDER
-// =====================================
+// called after Razorpay checkout completes
 export const verifyPaymentAndCreateOrder = async (
   req: Request,
   res: Response
@@ -213,12 +195,8 @@ export const verifyPaymentAndCreateOrder = async (
       });
     }
 
-    // =====================================
-    // IDEMPOTENCY — a retried/duplicated verify call for a Razorpay order
-    // we've already turned into an Order must not create a second one
-    // (e.g. the user's network blips right after the handler fires and
-    // the frontend retries, or the browser resends the request).
-    // =====================================
+    // if this order was already verified (e.g. a retried request), just
+    // return the existing order instead of creating a duplicate
     const existingOrder = await Order.findOne({
       razorpayOrderId: razorpay_order_id,
     });
@@ -231,9 +209,7 @@ export const verifyPaymentAndCreateOrder = async (
       });
     }
 
-    // =====================================
-    // VERIFY SIGNATURE (SECURITY CHECK)
-    // =====================================
+    // confirms this payment actually came from Razorpay and wasn't forged
     const generatedSignature = crypto
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET!)
       .update(razorpay_order_id + "|" + razorpay_payment_id)
@@ -246,15 +222,8 @@ export const verifyPaymentAndCreateOrder = async (
       });
     }
 
-    // =====================================
-    // RECOMPUTE THE ORDER TOTAL SERVER-SIDE, THEN CROSS-CHECK IT AGAINST
-    // WHAT WAS ACTUALLY CAPTURED BY RAZORPAY.
-    // =====================================
-    // This is the second half of the fix: even with a valid signature, we
-    // don't assume the amount that was paid matches the cart being
-    // submitted (the cart could have changed between order-creation and
-    // verification, or the client could simply lie). We fetch the real
-    // Razorpay order and require its amount to match what we compute here.
+    // double check: recompute the total again and compare it against what
+    // Razorpay actually charged, in case the cart changed in between
     const totals = await calculateOrderTotals(items, couponCode);
 
     const razorpayOrder = await razorpay.orders.fetch(razorpay_order_id);
@@ -283,9 +252,7 @@ export const verifyPaymentAndCreateOrder = async (
       return res.status(404).json({ message: "Address not found" });
     }
 
-    // =====================================
-    // CREATE ORDER IN DB (PAID ORDER) — using only server-computed values
-    // =====================================
+    // save the order using our own computed totals, not the client's
     const newOrder = await Order.create({
       user: userId,
       items: totals.items,
@@ -301,14 +268,14 @@ export const verifyPaymentAndCreateOrder = async (
       orderStatus: "confirmed",
     });
 
-    // Decrease stock for each item (non-blocking safety)
+    // reduce stock for each item ordered
     for (const item of newOrder.items) {
       await Product.findByIdAndUpdate(item.product, {
         $inc: { stock: -item.quantity },
       });
     }
 
-    // Send confirmation + admin alert emails (non-blocking)
+    // fire off the confirmation + admin emails
     sendOrderEmails(newOrder);
 
     return res.status(201).json({
@@ -323,9 +290,7 @@ export const verifyPaymentAndCreateOrder = async (
   }
 };
 
-// =====================================
-// CASH ON DELIVERY ORDER
-// =====================================
+// COD checkout
 export const createCODOrder = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
@@ -344,9 +309,8 @@ export const createCODOrder = async (req: Request, res: Response) => {
       return res.status(404).json({ message: "Address not found" });
     }
 
-    // Same server-side recomputation as the online-payment flow — a COD
-    // order with tampered prices is just as real a loss as a tampered
-    // online payment, it just shows up at the doorstep instead.
+    // same price recalculation as the online-payment flow — a tampered
+    // COD order costs just as much as a tampered online one
     const totals = await calculateOrderTotals(items, couponCode);
 
     const order = await Order.create({
@@ -362,14 +326,14 @@ export const createCODOrder = async (req: Request, res: Response) => {
       orderStatus: "pending",
     });
 
-    // Decrease stock for each item
+    // reduce stock for each item ordered
     for (const item of order.items) {
       await Product.findByIdAndUpdate(item.product, {
         $inc: { stock: -item.quantity },
       });
     }
 
-    // Send confirmation + admin alert emails (non-blocking)
+    // fire off the confirmation + admin emails
     sendOrderEmails(order);
 
     return res.status(201).json({

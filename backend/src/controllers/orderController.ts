@@ -174,7 +174,7 @@ export const downloadInvoice = async (req: Request, res: Response) => {
       });
     }
 
-    generateInvoicePDF(order as any, res);
+    await generateInvoicePDF(order as any, res);
   } catch (error: any) {
     return res.status(500).json({
       message: error.message,

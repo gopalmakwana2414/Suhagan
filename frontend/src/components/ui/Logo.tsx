@@ -5,53 +5,36 @@ import Link from "next/link";
 
 interface LogoProps {
   className?: string;
-  /** height in px — this actually controls the rendered size now */
-  height?: number;
   linkToHome?: boolean;
 }
 
-// shared logo used in the Navbar, Footer, and Admin sidebar. reads from
-// /public/logo.png, falls back to the "SUHAGAN" text if the file's missing
+// shared logo used across the website. reads from public/kaumodi.png
+// responsive size: height 35px (mobile) -> 45px (tablet) -> 55px (desktop)
 export default function Logo({
   className = "",
-  height = 142,
   linkToHome = true,
 }: LogoProps) {
   const image = (
     <Image
-      src="/logo.png"
-      alt="Suhagan — Premium Handcrafted Sarees"
-      width={height * 3.2}
-      height={height}
+      src="/kaumodi.png"
+      alt="Kaumudi — Premium Handcrafted Sarees"
+      width={315}
+      height={141}
       priority
-      style={{ height: `${height}px`, width: "auto" }}
-      className={`object-contain ${className}`}
-      onError={(e) => {
-        // Graceful fallback if logo.png hasn't been added yet.
-        (e.target as HTMLImageElement).style.display = "none";
-        const fallback = (e.target as HTMLImageElement)
-          .nextElementSibling as HTMLElement | null;
-        if (fallback) fallback.style.display = "inline-block";
-      }}
+      className={`h-[35px] sm:h-[45px] lg:h-[55px] w-auto object-contain ${className}`}
     />
   );
 
   const content = (
-    <span className="inline-flex items-center mt-4">
+    <span className="inline-flex items-center justify-center">
       {image}
-      <span
-        style={{ display: "none", fontSize: `${height * 0.55}px` }}
-        className="font-bold tracking-wide text-[#b8860b]"
-      >
-        SUHAGAN
-      </span>
     </span>
   );
 
   if (!linkToHome) return content;
 
   return (
-    <Link href="/" aria-label="Suhagan — Home">
+    <Link href="/" aria-label="Kaumudi — Home" className="flex items-center">
       {content}
     </Link>
   );

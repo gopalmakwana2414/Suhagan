@@ -204,7 +204,7 @@ export default function CheckoutPage() {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: razorpayOrder.amount,
         currency: "INR",
-        name: "Suhagan",
+        name: "Kaumudi",
         description: "Premium Saree Purchase",
         order_id: razorpayOrder.id,
         prefill: {

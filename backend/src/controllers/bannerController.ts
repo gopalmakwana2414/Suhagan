@@ -16,7 +16,7 @@ export const createBanner = async (req: Request, res: Response) => {
 
     const uploadResult = await uploadToCloudinary(
       req.file.buffer,
-      "suhagan/banners"
+      "kaumudi/banners"
     );
 
     const banner = await Banner.create({
@@ -91,7 +91,7 @@ export const updateBanner = async (req: Request, res: Response) => {
     if (req.file) {
       const uploadResult = await uploadToCloudinary(
         req.file.buffer,
-        "suhagan/banners"
+        "kaumudi/banners"
       );
 
       const oldPublicId = banner.image?.publicId;

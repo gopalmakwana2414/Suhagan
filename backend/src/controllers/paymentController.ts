@@ -10,6 +10,7 @@ import {
   sendOrderConfirmationEmail,
   sendAdminOrderAlert,
 } from "../services/emailService";
+import { generateInvoicePDFBuffer } from "../services/invoiceService";
 
 const FREE_SHIPPING_THRESHOLD = 999;
 const SHIPPING_FEE = 99;
@@ -19,7 +20,8 @@ const SHIPPING_FEE = 99;
 // request and pay ₹1 for a ₹50,000 order
 const calculateOrderTotals = async (
   items: { product: string; quantity: number }[],
-  couponCode?: string
+  couponCode?: string,
+  ignoreStockCheck: boolean = false
 ) => {
   if (!Array.isArray(items) || items.length === 0) {
     throw new Error("Cart is empty");
@@ -40,7 +42,7 @@ const calculateOrderTotals = async (
       throw new Error(`Product ${productId} is no longer available`);
     }
 
-    if (product.stock < quantity) {
+    if (!ignoreStockCheck && product.stock < quantity) {
       throw new Error(`Insufficient stock for "${product.name}"`);
     }
 
@@ -61,7 +63,7 @@ const calculateOrderTotals = async (
 
   if (couponCode) {
     const coupon = await Coupon.findOne({
-      code: String(couponCode).toUpperCase(),
+      code: String(couponCode).toUpperCase().trim(),
       isActive: true,
     });
 
@@ -71,6 +73,14 @@ const calculateOrderTotals = async (
 
     if (new Date() > coupon.expiresAt) {
       throw new Error("Coupon expired");
+    }
+
+    if (
+      coupon.usageLimit &&
+      coupon.usedCount !== undefined &&
+      coupon.usedCount >= coupon.usageLimit
+    ) {
+      throw new Error("Coupon usage limit reached");
     }
 
     if (subtotal < coupon.minimumOrderAmount) {
@@ -97,46 +107,87 @@ const calculateOrderTotals = async (
 // fires confirmation + admin alert emails, doesn't block the response
 const sendOrderEmails = async (order: any) => {
   try {
-    const user = await User.findById(order.user);
-    const address = await Address.findById(order.shippingAddress);
+    // Fetch populated order to check if invoice was already sent and get all info
+    const populatedOrder = await Order.findById(order._id)
+      .populate("shippingAddress")
+      .populate("items.product", "name sku thumbnail originalPrice salePrice")
+      .populate("user", "name email");
 
-    if (!user || !address) return;
+    if (!populatedOrder) {
+      console.error(`Order ${order._id} not found for sending emails`);
+      return;
+    }
 
-    const itemsWithNames = await Promise.all(
-      order.items.map(async (item: any) => {
-        const product = await Product.findById(item.product).select("name");
-        return {
-          name: product?.name || "Saree",
-          quantity: item.quantity,
-          price: item.price,
-        };
-      })
-    );
+    if (populatedOrder.invoiceSent) {
+      console.log(`Invoice already sent for order ${populatedOrder._id}`);
+      return;
+    }
 
-    const addressString = `${address.addressLine1}${
+    const user = populatedOrder.user as any;
+    const address = populatedOrder.shippingAddress as any;
+
+    if (!user || !address) {
+      console.error(`Missing user or address for order ${populatedOrder._id}`);
+      return;
+    }
+
+    // Generate PDF Buffer
+    let pdfBuffer: Buffer;
+    try {
+      pdfBuffer = await generateInvoicePDFBuffer(populatedOrder as any);
+    } catch (pdfErr: any) {
+      console.error(`PDF generation failed for order ${populatedOrder._id}:`, pdfErr.message);
+      return; // do not proceed to email if attachment failed
+    }
+
+    // Format address & items for the email template
+    const addressString = `${address.fullName}\n${address.addressLine1}${
       address.addressLine2 ? ", " + address.addressLine2 : ""
-    }, ${address.city}, ${address.state} – ${address.postalCode}`;
+    }\n${address.city}, ${address.state} - ${address.postalCode}\n${address.country}\nPhone: ${address.mobileNumber}`;
 
-    await sendOrderConfirmationEmail({
-      to: user.email,
-      customerName: user.name,
-      orderId: order._id.toString(),
-      items: itemsWithNames,
-      totalAmount: order.totalAmount,
-      paymentMethod: order.paymentMethod,
-      address: addressString,
-    });
+    const itemsForEmail = populatedOrder.items.map((item: any) => ({
+      name: item.product?.name || "Saree Product",
+      quantity: item.quantity,
+      price: item.price,
+    }));
 
-    await sendAdminOrderAlert({
-      orderId: order._id.toString(),
-      customerName: user.name,
-      customerEmail: user.email,
-      totalAmount: order.totalAmount,
-      paymentMethod: order.paymentMethod,
-      itemCount: order.totalItems,
-    });
+    // Send customer confirmation email with PDF attachment
+    try {
+      await sendOrderConfirmationEmail({
+        to: user.email,
+        customerName: user.name,
+        orderId: populatedOrder._id.toString(),
+        orderDate: populatedOrder.createdAt,
+        items: itemsForEmail,
+        totalAmount: populatedOrder.totalAmount,
+        paymentMethod: populatedOrder.paymentMethod,
+        paymentStatus: populatedOrder.paymentStatus,
+        address: addressString,
+        pdfBuffer,
+      });
+      
+      // Mark as sent and save
+      populatedOrder.invoiceSent = true;
+      await populatedOrder.save();
+    } catch (emailErr: any) {
+      console.error(`Customer confirmation email failed for order ${populatedOrder._id}:`, emailErr.message);
+    }
+
+    // Send admin alert (keep separate so customer failures don't block admin alert)
+    try {
+      await sendAdminOrderAlert({
+        orderId: populatedOrder._id.toString(),
+        customerName: user.name,
+        customerEmail: user.email,
+        totalAmount: populatedOrder.totalAmount,
+        paymentMethod: populatedOrder.paymentMethod,
+        itemCount: populatedOrder.totalItems,
+      });
+    } catch (adminErr: any) {
+      console.error(`Admin order alert email failed for order ${populatedOrder._id}:`, adminErr.message);
+    }
   } catch (err: any) {
-    console.error("Order email sending failed:", err.message);
+    console.error(`Error in sendOrderEmails background runner for order ${order._id}:`, err.message);
   }
 };
 
@@ -223,8 +274,10 @@ export const verifyPaymentAndCreateOrder = async (
     }
 
     // double check: recompute the total again and compare it against what
-    // Razorpay actually charged, in case the cart changed in between
-    const totals = await calculateOrderTotals(items, couponCode);
+    // Razorpay actually charged, in case the cart changed in between.
+    // We pass ignoreStockCheck = true here: they have already paid, so we must
+    // record their order regardless of sudden stock depletion.
+    const totals = await calculateOrderTotals(items, couponCode, true);
 
     const razorpayOrder = await razorpay.orders.fetch(razorpay_order_id);
     const paidAmountRupees = Number(razorpayOrder.amount) / 100;
@@ -273,6 +326,11 @@ export const verifyPaymentAndCreateOrder = async (
       await Product.findByIdAndUpdate(item.product, {
         $inc: { stock: -item.quantity },
       });
+    }
+
+    // increment coupon usage count
+    if (newOrder.couponCode) {
+      await Coupon.updateOne({ code: newOrder.couponCode }, { $inc: { usedCount: 1 } });
     }
 
     // fire off the confirmation + admin emails
@@ -325,12 +383,36 @@ export const createCODOrder = async (req: Request, res: Response) => {
       paymentStatus: "pending",
       orderStatus: "pending",
     });
+    // reduce stock atomically, verifying we don't oversell
+    const decrementedItems: { product: string; quantity: number }[] = [];
+    try {
+      for (const item of order.items) {
+        const updatedProduct = await Product.findOneAndUpdate(
+          { _id: item.product, stock: { $gte: item.quantity } },
+          { $inc: { stock: -item.quantity } },
+          { new: true }
+        );
 
-    // reduce stock for each item ordered
-    for (const item of order.items) {
-      await Product.findByIdAndUpdate(item.product, {
-        $inc: { stock: -item.quantity },
-      });
+        if (!updatedProduct) {
+          throw new Error(`Insufficient stock for one of the products`);
+        }
+        decrementedItems.push({ product: item.product.toString(), quantity: item.quantity });
+      }
+    } catch (err: any) {
+      // Rollback any successfully decremented stocks
+      for (const rolledBack of decrementedItems) {
+        await Product.findByIdAndUpdate(rolledBack.product, {
+          $inc: { stock: rolledBack.quantity },
+        });
+      }
+      // Also delete the created order since checkout failed
+      await Order.findByIdAndDelete(order._id);
+      throw err;
+    }
+
+    // increment coupon usage count
+    if (order.couponCode) {
+      await Coupon.updateOne({ code: order.couponCode }, { $inc: { usedCount: 1 } });
     }
 
     // fire off the confirmation + admin emails

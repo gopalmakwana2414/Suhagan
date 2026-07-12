@@ -45,16 +45,31 @@ export default function Navbar() {
     enabled: debouncedSearch.trim().length >= 2,
   });
 
-  // Close suggestions when clicking outside
+  // Close suggestions when clicking outside & handle Esc key
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setShowSuggestions(false);
       }
     };
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowSuggestions(false);
+        setUserMenu(false);
+        setMobileMenu(false);
+      }
+    };
+
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    window.addEventListener("keydown", handleKeyDown);
+    
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
+
 
   const cartItems = useCartStore((state) => state.items);
   const wishlistItems = useWishlistStore((state) => state.items);
@@ -142,6 +157,7 @@ export default function Navbar() {
                   onFocus={() => setShowSuggestions(true)}
                   placeholder="Search sarees..."
                   className="outline-none ml-2 w-full text-sm"
+                  suppressHydrationWarning
                 />
               </form>
 
@@ -215,72 +231,87 @@ export default function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setUserMenu(!userMenu)}
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 focus:outline-none focus:ring-2 focus:ring-[#d4af37] rounded-full p-0.5 transition"
+                  aria-expanded={userMenu}
+                  aria-haspopup="true"
+                  aria-label="User profile menu"
+                  suppressHydrationWarning
                 >
-                  <div className="w-9 h-9 bg-[#fff8e7] border border-[#d4af37] rounded-full flex items-center justify-center">
+                  <div className="w-9 h-9 bg-[#fff8e7] border border-[#d4af37] rounded-full flex items-center justify-center hover:bg-[#fff0c8] transition">
                     <User size={18} className="text-[#b8860b]" />
                   </div>
                 </button>
 
                 {userMenu && (
-                  <div className="absolute right-0 top-12 bg-white border shadow-xl rounded-2xl w-52 p-2 z-50">
+                  <div
+                    role="menu"
+                    aria-label="User Menu"
+                    className="absolute right-0 top-12 bg-white/95 backdrop-blur-md border border-[#d4af37]/25 shadow-2xl rounded-2xl w-60 p-4 z-50 transition-all duration-200 origin-top-right animate-in fade-in slide-in-from-top-2"
+                  >
                     {user ? (
                       <>
-                        <div className="px-3 py-2 border-b mb-1">
-                          <p className="font-semibold text-sm">{user.name}</p>
-                          <p className="text-xs text-gray-400">{user.email}</p>
+                        <div className="px-2 pb-3 border-b border-gray-100 mb-2">
+                          <p className="font-semibold text-sm text-gray-800 truncate">{user.name}</p>
+                          <p className="text-xs text-gray-400 truncate mt-0.5">{user.email}</p>
                         </div>
                         <Link
                           href="/profile"
+                          role="menuitem"
                           onClick={() => setUserMenu(false)}
-                          className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-gray-50 text-sm"
+                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[#fff8e7] hover:text-[#b8860b] text-gray-700 text-sm font-medium transition focus:outline-none focus:bg-[#fff8e7] focus:text-[#b8860b]"
                         >
-                          <User size={14} /> My Profile
+                          <User size={15} /> My Profile
                         </Link>
                         <Link
                           href="/orders"
+                          role="menuitem"
                           onClick={() => setUserMenu(false)}
-                          className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-gray-50 text-sm"
+                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[#fff8e7] hover:text-[#b8860b] text-gray-700 text-sm font-medium transition focus:outline-none focus:bg-[#fff8e7] focus:text-[#b8860b]"
                         >
-                          <ShoppingBag size={14} /> My Orders
+                          <ShoppingBag size={15} /> My Orders
                         </Link>
                         {user.role === "admin" && (
                           <Link
                             href="/admin"
+                            role="menuitem"
                             onClick={() => setUserMenu(false)}
-                            className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-gray-50 text-sm"
+                            className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-[#fff8e7] hover:text-[#b8860b] text-gray-700 text-sm font-medium transition focus:outline-none focus:bg-[#fff8e7] focus:text-[#b8860b]"
                           >
-                            <Settings size={14} /> Admin Panel
+                            <Settings size={15} /> Admin Panel
                           </Link>
                         )}
                         <button
                           onClick={handleLogout}
-                          className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-red-50 text-red-500 text-sm w-full"
+                          role="menuitem"
+                          className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl hover:bg-red-50 text-red-600 hover:text-red-700 text-sm font-medium w-full text-left transition focus:outline-none focus:bg-red-50 focus:text-red-700"
                         >
-                          <LogOut size={14} /> Logout
+                          <LogOut size={15} /> Logout
                         </button>
                       </>
                     ) : (
-                      <>
+                      <div className="flex flex-col gap-2">
                         <Link
                           href="/login"
+                          role="menuitem"
                           onClick={() => setUserMenu(false)}
-                          className="block px-3 py-2 rounded-xl hover:bg-gray-50 text-sm font-medium"
+                          className="block w-full text-center px-4 py-2.5 rounded-xl border border-[#d4af37] text-[#b8860b] hover:bg-[#fff8e7] text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#d4af37]/40"
                         >
                           Login
                         </Link>
                         <Link
                           href="/register"
+                          role="menuitem"
                           onClick={() => setUserMenu(false)}
-                          className="block px-3 py-2 rounded-xl bg-[#d4af37] text-white text-sm font-medium text-center mt-1 hover:bg-[#b8860b] transition"
+                          className="block w-full text-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#b8860b] text-white hover:from-[#b8860b] hover:to-[#996515] text-sm font-semibold transition-all duration-200 shadow-md shadow-[#d4af37]/20 hover:shadow-lg hover:shadow-[#d4af37]/30 focus:outline-none focus:ring-2 focus:ring-[#d4af37]/40"
                         >
                           Create Account
                         </Link>
-                      </>
+                      </div>
                     )}
                   </div>
                 )}
               </div>
+
 
               {/* Mobile Toggle */}
               <button

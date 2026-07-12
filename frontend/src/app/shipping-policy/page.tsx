@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Shipping Policy | Suhagan",
-  description: "Suhagan shipping policy — delivery timelines, charges, and tracking.",
+  title: "Shipping Policy | Kaumudi",
+  description: "Kaumudi shipping policy — delivery timelines, charges, and tracking.",
 };
 
 export default function ShippingPolicyPage() {
@@ -43,7 +43,7 @@ export default function ShippingPolicyPage() {
             },
             {
               title: "Packaging",
-              content: `Every Suhagan saree is carefully packaged in protective, eco-friendly packaging to prevent 
+              content: `Every Kaumudi saree is carefully packaged in protective, eco-friendly packaging to prevent 
               damage during transit. Sarees are folded, wrapped in tissue paper, and placed in a branded box.`,
             },
             {
@@ -54,7 +54,7 @@ export default function ShippingPolicyPage() {
             {
               title: "Incorrect Address",
               content: `Please ensure your delivery address is complete and accurate at the time of placing your order. 
-              Suhagan is not responsible for non-delivery due to an incorrect or incomplete address provided by the customer.`,
+              Kaumudi is not responsible for non-delivery due to an incorrect or incomplete address provided by the customer.`,
             },
           ].map((section) => (
             <div key={section.title}>

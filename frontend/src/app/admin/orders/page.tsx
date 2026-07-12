@@ -40,7 +40,7 @@ export default function AdminOrdersPage() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `Suhagan-Invoice-${orderId.slice(-8).toUpperCase()}.pdf`;
+      link.download = `Kaumudi-Invoice-${orderId.slice(-8).toUpperCase()}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Suhagan",
-  description: "Suhagan privacy policy — how we collect, use, and protect your data.",
+  title: "Privacy Policy | Kaumudi",
+  description: "Kaumudi privacy policy — how we collect, use, and protect your data.",
 };
 
 export default function PrivacyPolicyPage() {
@@ -15,15 +15,15 @@ export default function PrivacyPolicyPage() {
         <div className="space-y-8">
 
           <p className="text-gray-600 leading-8">
-            Suhagan (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) is committed to
+            Kaumudi (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) is committed to
             protecting your privacy. This policy explains what information we collect when you
-            visit <strong>suhagan.com</strong>, how we use it, and your rights regarding your data.
+            visit <strong>kaumudi.com</strong>, how we use it, and your rights regarding your data.
           </p>
 
           {[
             {
               title: "1. Information We Collect",
-              content: `When you use Suhagan, we may collect the following:
+              content: `When you use Kaumudi, we may collect the following:
 
               Personal Information:
               • Name, email address, phone number (when you register or checkout)
@@ -46,7 +46,7 @@ export default function PrivacyPolicyPage() {
             },
             {
               title: "3. Payment Security",
-              content: `All payments on Suhagan are processed by Razorpay, a PCI-DSS compliant payment 
+              content: `All payments on Kaumudi are processed by Razorpay, a PCI-DSS compliant payment 
               gateway. We do not store your credit/debit card numbers or CVV on our servers. 
               Your payment data is encrypted and handled entirely by Razorpay.`,
             },
@@ -84,7 +84,7 @@ export default function PrivacyPolicyPage() {
             },
             {
               title: "8. Children's Privacy",
-              content: `Suhagan is not intended for users under the age of 18. We do not knowingly 
+              content: `Kaumudi is not intended for users under the age of 18. We do not knowingly 
               collect personal information from minors.`,
             },
             {
@@ -108,7 +108,7 @@ export default function PrivacyPolicyPage() {
                 g91652251@gmail.com
               </a>
               <br />
-              Suhagan Sarees, Ring Road, Surat, Gujarat – 395002
+              Kaumudi Sarees, Ring Road, Surat, Gujarat – 395002
             </p>
           </div>
         </div>

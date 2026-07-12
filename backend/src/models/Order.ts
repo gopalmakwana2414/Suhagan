@@ -48,6 +48,8 @@ export interface IOrder extends Document {
     | "delivered"
     | "cancelled";
 
+  invoiceSent?: boolean;
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -154,6 +156,10 @@ const orderSchema = new Schema<IOrder>(
         "cancelled",
       ],
       default: "pending",
+    },
+    invoiceSent: {
+      type: Boolean,
+      default: false,
     },
   },
   {

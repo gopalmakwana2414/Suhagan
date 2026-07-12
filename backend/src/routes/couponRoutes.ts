@@ -7,6 +7,7 @@ import {
   createCoupon,
   getCoupons,
   applyCoupon,
+  updateCoupon,
   deleteCoupon,
 } from "../controllers/couponController";
 
@@ -20,6 +21,13 @@ router.post(
   protect,
   adminOnly,
   createCoupon
+);
+
+router.put(
+  "/:id",
+  protect,
+  adminOnly,
+  updateCoupon
 );
 
 router.delete(

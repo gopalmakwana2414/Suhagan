@@ -141,7 +141,7 @@ export default function Footer() {
       {/* Bottom Bar */}
       <div className="border-t border-gray-800">
         <div className="container-custom py-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-500">
-          <p>© {currentYear} Suhagan Sarees. All Rights Reserved.</p>
+          <p>© {currentYear} Kaumudi. All Rights Reserved.</p>
           <div className="flex gap-5">
             <Link href="/privacy-policy" className="hover:text-[#d4af37] transition">
               Privacy

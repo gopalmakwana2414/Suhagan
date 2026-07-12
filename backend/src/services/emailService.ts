@@ -11,6 +11,7 @@
 
 import nodemailer from "nodemailer";
 import { env } from "../config/env";
+import { getOrderConfirmationTemplate } from "./emailTemplateService";
 
 // created lazily so just importing this file doesn't blow up if SMTP
 // env vars aren't set yet — only errors once you actually try to send
@@ -43,14 +44,14 @@ const BRAND_COLOR = "#d4af37";
 const wrapTemplate = (title: string, bodyHtml: string) => `
   <div style="font-family: Georgia, 'Times New Roman', serif; max-width: 560px; margin: 0 auto; color: #2b2b2b;">
     <div style="background: ${BRAND_COLOR}; padding: 24px; text-align: center;">
-      <h1 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: 2px;">SUHAGAN</h1>
+      <h1 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: 2px;">KAUMUDI</h1>
     </div>
     <div style="background: #ffffff; padding: 32px 24px; border: 1px solid #eee; border-top: none;">
       <h2 style="margin-top: 0; color: #2b2b2b;">${title}</h2>
       ${bodyHtml}
     </div>
     <p style="text-align: center; color: #999; font-size: 12px; margin-top: 16px;">
-      SUHAGAN — Luxury Sarees, Surat, India
+      KAUMUDI — Luxury Sarees, Surat, India
     </p>
   </div>
 `;
@@ -59,7 +60,7 @@ const send = async (to: string, subject: string, html: string, text?: string) =>
   const mailer = getTransporter();
 
   await mailer.sendMail({
-    from: `"SUHAGAN" <${env.EMAIL_FROM}>`,
+    from: `"KAUMUDI" <${env.EMAIL_FROM}>`,
     to,
     subject,
     html,
@@ -77,7 +78,7 @@ export const sendWelcomeEmail = async ({
 }): Promise<void> => {
   const html = wrapTemplate(
     `Welcome, ${customerName}! 🌸`,
-    `<p>Thank you for creating an account with SUHAGAN. Explore our handcrafted
+    `<p>Thank you for creating an account with KAUMUDI. Explore our handcrafted
      collection of Banarasi, Kanjivaram, Silk and Designer sarees, curated for
      every occasion.</p>
      <p><a href="${env.FRONTEND_URL}/shop" style="display:inline-block;background:${BRAND_COLOR};color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;margin-top:8px;">
@@ -85,7 +86,7 @@ export const sendWelcomeEmail = async ({
      </a></p>`
   );
 
-  await send(to, "Welcome to SUHAGAN 🌸", html);
+  await send(to, "Welcome to KAUMUDI 🌸", html);
 };
 
 // otp email
@@ -103,7 +104,7 @@ export const sendOTPEmail = async ({
      <p style="color:#999; font-size: 13px;">If you didn't request this, you can safely ignore this email.</p>`
   );
 
-  await send(to, "Your SUHAGAN verification code", html);
+  await send(to, "Your KAUMUDI verification code", html);
 };
 
 // reset password email
@@ -119,7 +120,7 @@ export const sendResetPasswordEmail = async ({
   const html = wrapTemplate(
     "Reset Your Password",
     `<p>Hi ${customerName},</p>
-     <p>We received a request to reset your SUHAGAN account password. This link
+     <p>We received a request to reset your KAUMUDI account password. This link
      is valid for 30 minutes.</p>
      <p><a href="${resetUrl}" style="display:inline-block;background:${BRAND_COLOR};color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;margin-top:8px;">
        Reset Password
@@ -131,7 +132,7 @@ export const sendResetPasswordEmail = async ({
      <p style="color:#999; font-size: 12px; word-break: break-all;">${resetUrl}</p>`
   );
 
-  await send(to, "Reset your SUHAGAN password", html);
+  await send(to, "Reset your KAUMUDI password", html);
 };
 
 // order status update email
@@ -164,49 +165,59 @@ export const sendOrderConfirmationEmail = async (data: {
   to: string;
   customerName: string;
   orderId: string;
+  orderDate: Date;
   items: { name: string; quantity: number; price: number }[];
   totalAmount: number;
   paymentMethod: string;
+  paymentStatus: string;
   address: string;
+  pdfBuffer: Buffer;
 }): Promise<void> => {
-  const itemsHtml = data.items
-    .map(
-      (item) => `
-      <tr>
-        <td style="padding: 8px 0; border-bottom: 1px solid #eee;">${item.name} × ${item.quantity}</td>
-        <td style="padding: 8px 0; border-bottom: 1px solid #eee; text-align: right;">₹${(
-          item.price * item.quantity
-        ).toLocaleString("en-IN")}</td>
-      </tr>`
-    )
-    .join("");
+  const html = getOrderConfirmationTemplate({
+    customerName: data.customerName,
+    orderId: data.orderId,
+    orderDate: data.orderDate,
+    items: data.items,
+    totalAmount: data.totalAmount,
+    paymentMethod: data.paymentMethod,
+    paymentStatus: data.paymentStatus,
+    address: data.address,
+  });
 
-  const html = wrapTemplate(
-    "Order Confirmed! 🎉",
-    `<p>Hi ${data.customerName},</p>
-     <p>Thank you for your order. Here's a summary:</p>
-     <p style="color:#999; font-size: 13px;">Order ID: #${data.orderId
-       .slice(-8)
-       .toUpperCase()}</p>
-     <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-       ${itemsHtml}
-       <tr>
-         <td style="padding: 12px 0; font-weight: bold;">Total</td>
-         <td style="padding: 12px 0; font-weight: bold; text-align: right;">₹${data.totalAmount.toLocaleString(
-           "en-IN"
-         )}</td>
-       </tr>
-     </table>
-     <p><strong>Payment method:</strong> ${
-       data.paymentMethod === "COD" ? "Cash on Delivery" : "Online Payment"
-     }</p>
-     <p><strong>Delivery address:</strong> ${data.address}</p>
-     <p><a href="${env.FRONTEND_URL}/orders/${data.orderId}" style="display:inline-block;background:${BRAND_COLOR};color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;margin-top:8px;">
-       View Order
-     </a></p>`
-  );
+  const orderIdShort = data.orderId.slice(-8).toUpperCase();
+  const mailer = getTransporter();
 
-  await send(data.to, "Your SUHAGAN order is confirmed", html);
+  // Retry logic with backoff for SMTP errors
+  let attempts = 0;
+  const maxAttempts = 3;
+  let delay = 1000;
+
+  while (attempts < maxAttempts) {
+    try {
+      await mailer.sendMail({
+        from: `"KAUMUDI" <${env.EMAIL_FROM}>`,
+        to: data.to,
+        subject: `Your KAUMUDI Order Confirmation & Invoice (#${orderIdShort})`,
+        html,
+        attachments: [
+          {
+            filename: `KAUMUDI-Invoice-${orderIdShort}.pdf`,
+            content: data.pdfBuffer,
+            contentType: "application/pdf",
+          },
+        ],
+      });
+      return;
+    } catch (err: any) {
+      attempts++;
+      console.error(`SMTP attempt ${attempts} failed to send order confirmation email:`, err.message);
+      if (attempts >= maxAttempts) {
+        throw new Error(`Failed to send order confirmation email after ${maxAttempts} attempts. Last error: ${err.message}`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      delay *= 2;
+    }
+  }
 };
 
 // admin new order alert

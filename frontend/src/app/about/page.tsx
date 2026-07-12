@@ -11,10 +11,10 @@ export default function AboutPage() {
           </p>
           <h1 className="text-5xl lg:text-6xl font-bold mt-4">
             About{" "}
-            <span className="text-[#d4af37]">Suhagan</span>
+            <span className="text-[#d4af37]">Kaumudi</span>
           </h1>
           <p className="mt-6 text-lg text-gray-600 max-w-2xl mx-auto">
-            Born in the city of Surat, Suhagan is a celebration of India&apos;s
+            Born in the city of Surat, Kaumudi is a celebration of India&apos;s
             finest saree traditions — crafted for the modern woman who values
             heritage, elegance, and quality.
           </p>
@@ -64,17 +64,17 @@ export default function AboutPage() {
                 Who We Are
               </p>
               <h2 className="text-4xl font-bold mt-4 mb-6">
-                The Heart Behind Suhagan
+                The Heart Behind Kaumudi
               </h2>
               <p className="text-gray-600 leading-8 mb-5">
-                Suhagan started as a vision — to bring the finest Banarasi,
+                Kaumudi started as a vision — to bring the finest Banarasi,
                 Kanjivaram, and Silk sarees from the looms of Surat directly to
                 women across India. Our factory in Surat has been weaving sarees
                 for decades, and today we bring that craftsmanship online.
               </p>
               <p className="text-gray-600 leading-8 mb-8">
                 Whether it&apos;s a wedding, festival, or everyday elegance —
-                every woman deserves to feel like a Suhagan (beloved bride). Our
+                every woman deserves to feel beautiful and celebrated. Our
                 collections are designed with that spirit in mind.
               </p>
               <Link

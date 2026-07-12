@@ -55,7 +55,7 @@ export default function AdminDashboard() {
       <div>
         <h1 className="text-3xl font-bold text-[#b8860b]">Dashboard</h1>
         <p className="text-gray-500 text-sm mt-1">
-          Welcome to Suhagan Admin Panel
+          Welcome to Kaumudi Admin Panel
         </p>
       </div>
 

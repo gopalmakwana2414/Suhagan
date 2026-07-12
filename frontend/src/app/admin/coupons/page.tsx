@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Plus, Trash2, X, Tag } from "lucide-react";
+import { Plus, Trash2, X, Tag, Pencil } from "lucide-react";
 import api from "@/lib/api";
 
 export default function AdminCouponsPage() {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<any | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
@@ -17,6 +18,7 @@ export default function AdminCouponsPage() {
     minimumOrderAmount: 0,
     expiresAt: "",
     isActive: true,
+    usageLimit: "" as string | number,
   });
 
   const { data: coupons = [], isLoading } = useQuery({
@@ -32,6 +34,7 @@ export default function AdminCouponsPage() {
       const res = await api.post("/coupons", {
         ...data,
         code: data.code.toUpperCase().trim(),
+        usageLimit: data.usageLimit === "" ? null : Number(data.usageLimit),
       });
       return res.data;
     },
@@ -45,10 +48,39 @@ export default function AdminCouponsPage() {
         minimumOrderAmount: 0,
         expiresAt: "",
         isActive: true,
+        usageLimit: "",
       });
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || "Failed to create coupon");
+    },
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: typeof form) => {
+      const res = await api.put(`/coupons/${editingCoupon._id}`, {
+        ...data,
+        code: data.code.toUpperCase().trim(),
+        usageLimit: data.usageLimit === "" ? null : Number(data.usageLimit),
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["coupons"] });
+      toast.success("Coupon updated successfully!");
+      setShowForm(false);
+      setEditingCoupon(null);
+      setForm({
+        code: "",
+        discountPercentage: 10,
+        minimumOrderAmount: 0,
+        expiresAt: "",
+        isActive: true,
+        usageLimit: "",
+      });
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || "Failed to update coupon");
     },
   });
 
@@ -68,7 +100,21 @@ export default function AdminCouponsPage() {
     e.preventDefault();
     if (!form.code.trim()) return toast.error("Coupon code required");
     if (!form.expiresAt) return toast.error("Expiry date required");
-    createMutation.mutate(form);
+    if (form.discountPercentage < 1 || form.discountPercentage > 100) {
+      return toast.error("Discount percentage must be between 1 and 100");
+    }
+    if (form.minimumOrderAmount < 0) {
+      return toast.error("Minimum order amount cannot be negative");
+    }
+    if (form.usageLimit !== "" && Number(form.usageLimit) <= 0) {
+      return toast.error("Usage limit must be a positive number");
+    }
+
+    if (editingCoupon) {
+      updateMutation.mutate(form);
+    } else {
+      createMutation.mutate(form);
+    }
   };
 
   const isExpired = (date: string) => new Date(date) < new Date();
@@ -88,7 +134,18 @@ export default function AdminCouponsPage() {
           </p>
         </div>
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            setEditingCoupon(null);
+            setForm({
+              code: "",
+              discountPercentage: 10,
+              minimumOrderAmount: 0,
+              expiresAt: "",
+              isActive: true,
+              usageLimit: "",
+            });
+            setShowForm(true);
+          }}
           className="flex items-center gap-2 bg-[#d4af37] text-white px-4 py-2 rounded-xl hover:bg-[#b8860b] transition"
         >
           <Plus size={16} />
@@ -100,8 +157,16 @@ export default function AdminCouponsPage() {
       {showForm && (
         <div className="bg-white rounded-2xl border shadow-sm p-6">
           <div className="flex justify-between items-center mb-5">
-            <h2 className="text-lg font-semibold">New Coupon</h2>
-            <button onClick={() => setShowForm(false)} className="text-gray-400">
+            <h2 className="text-lg font-semibold">
+              {editingCoupon ? "Edit Coupon" : "New Coupon"}
+            </h2>
+            <button
+              onClick={() => {
+                setShowForm(false);
+                setEditingCoupon(null);
+              }}
+              className="text-gray-400 hover:text-gray-600"
+            >
               <X size={20} />
             </button>
           </div>
@@ -116,7 +181,7 @@ export default function AdminCouponsPage() {
                 onChange={(e) =>
                   setForm({ ...form, code: e.target.value.toUpperCase() })
                 }
-                placeholder="SUHAGAN20"
+                placeholder="KAUMUDI20"
                 className="w-full border p-3 rounded-xl outline-none focus:border-[#d4af37] font-mono uppercase"
               />
             </div>
@@ -173,6 +238,25 @@ export default function AdminCouponsPage() {
               />
             </div>
 
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Usage Limit (Optional)
+              </label>
+              <input
+                type="number"
+                min={1}
+                placeholder="Unlimited"
+                value={form.usageLimit}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    usageLimit: e.target.value === "" ? "" : Number(e.target.value),
+                  })
+                }
+                className="w-full border p-3 rounded-xl outline-none focus:border-[#d4af37]"
+              />
+            </div>
+
             <div className="md:col-span-2 flex items-center gap-2">
               <input
                 type="checkbox"
@@ -191,14 +275,23 @@ export default function AdminCouponsPage() {
             <div className="md:col-span-2 flex gap-3">
               <button
                 type="submit"
-                disabled={createMutation.isPending}
+                disabled={createMutation.isPending || updateMutation.isPending}
                 className="bg-[#d4af37] text-white px-6 py-2.5 rounded-xl hover:bg-[#b8860b] transition disabled:opacity-60"
               >
-                {createMutation.isPending ? "Creating..." : "Create Coupon"}
+                {editingCoupon
+                  ? updateMutation.isPending
+                    ? "Saving..."
+                    : "Save Changes"
+                  : createMutation.isPending
+                  ? "Creating..."
+                  : "Create Coupon"}
               </button>
               <button
                 type="button"
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingCoupon(null);
+                }}
                 className="border px-6 py-2.5 rounded-xl hover:bg-gray-50"
               >
                 Cancel
@@ -229,6 +322,7 @@ export default function AdminCouponsPage() {
                 <th className="p-4">Discount</th>
                 <th className="p-4">Min. Order</th>
                 <th className="p-4">Expires</th>
+                <th className="p-4">Usage / Limit</th>
                 <th className="p-4">Status</th>
                 <th className="p-4">Actions</th>
               </tr>
@@ -256,25 +350,54 @@ export default function AdminCouponsPage() {
                     </span>
                   </td>
                   <td className="p-4">
+                    <span className="text-gray-700 font-medium">
+                      {coupon.usageLimit !== undefined && coupon.usageLimit !== null
+                        ? `${coupon.usedCount || 0} / ${coupon.usageLimit}`
+                        : `${coupon.usedCount || 0} / ∞`}
+                    </span>
+                  </td>
+                  <td className="p-4">
                     <span
                       className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                        coupon.isActive && !isExpired(coupon.expiresAt)
+                        coupon.isActive && !isExpired(coupon.expiresAt) && (!coupon.usageLimit || (coupon.usedCount || 0) < coupon.usageLimit)
                           ? "bg-green-100 text-green-700"
                           : "bg-gray-100 text-gray-500"
                       }`}
                     >
-                      {coupon.isActive && !isExpired(coupon.expiresAt)
+                      {coupon.isActive && !isExpired(coupon.expiresAt) && (!coupon.usageLimit || (coupon.usedCount || 0) < coupon.usageLimit)
                         ? "Active"
                         : "Inactive"}
                     </span>
                   </td>
                   <td className="p-4">
-                    <button
-                      onClick={() => setDeleteId(coupon._id)}
-                      className="text-red-500 hover:text-red-700 transition"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setEditingCoupon(coupon);
+                          const expiryDate = coupon.expiresAt ? new Date(coupon.expiresAt).toISOString().split("T")[0] : "";
+                          setForm({
+                            code: coupon.code || "",
+                            discountPercentage: coupon.discountPercentage || 10,
+                            minimumOrderAmount: coupon.minimumOrderAmount || 0,
+                            expiresAt: expiryDate,
+                            isActive: coupon.isActive !== undefined ? coupon.isActive : true,
+                            usageLimit: coupon.usageLimit !== undefined && coupon.usageLimit !== null ? coupon.usageLimit : "",
+                          });
+                          setShowForm(true);
+                        }}
+                        className="text-[#d4af37] hover:text-[#b8860b] transition"
+                        title="Edit"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        onClick={() => setDeleteId(coupon._id)}
+                        className="text-red-500 hover:text-red-700 transition"
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -4,6 +4,7 @@ const api = axios.create({
   baseURL:
     process.env.NEXT_PUBLIC_API_URL ||
     "http://localhost:5000/api",
+  timeout: 15000, // 15s timeout to prevent hung requests under peak load
 });
 
 api.interceptors.request.use(

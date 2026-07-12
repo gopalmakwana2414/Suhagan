@@ -54,7 +54,7 @@ export default function OrderDetailPage() {
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `Suhagan-Invoice-${order._id.slice(-8).toUpperCase()}.pdf`;
+      link.download = `Kaumudi-Invoice-${order._id.slice(-8).toUpperCase()}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();

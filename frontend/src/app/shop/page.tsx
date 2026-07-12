@@ -19,37 +19,69 @@ function ShopPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [search, setSearch] = useState(searchParams.get("search") || "");
-  const [sort, setSort] = useState(searchParams.get("sort") || "latest");
-  const [selectedCategory, setSelectedCategory] = useState(
-    searchParams.get("category") || ""
-  );
-  const [page, setPage] = useState(Number(searchParams.get("page")) || 1);
+  // Read search/filter states directly from the URL parameters (single source of truth)
+  const selectedCategory = searchParams.get("category") || "";
+  const sort = searchParams.get("sort") || "latest";
+  const page = Number(searchParams.get("page")) || 1;
 
-  const debouncedSearch = useDebounce(search, 400);
+  // Search input needs local state for immediate visual responsiveness while typing
+  const [searchInput, setSearchInput] = useState(searchParams.get("search") || "");
+  const debouncedSearch = useDebounce(searchInput, 400);
 
+  // Sync search input local state if the URL search parameter changes independently (e.g. back/forward buttons or clearing filters)
+  const urlSearch = searchParams.get("search") || "";
   useEffect(() => {
-    const params = new URLSearchParams();
-    if (debouncedSearch) params.set("search", debouncedSearch);
-    if (selectedCategory) params.set("category", selectedCategory);
-    if (sort !== "latest") params.set("sort", sort);
-    if (page > 1) params.set("page", String(page));
+    setSearchInput(urlSearch);
+  }, [urlSearch]);
 
-    const queryString = params.toString();
-    router.replace(queryString ? `/shop?${queryString}` : "/shop", {
-      scroll: false,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, selectedCategory, sort, page]);
-
+  // Sync the debounced search input back to the URL
   useEffect(() => {
-    const urlCategory = searchParams.get("category") || "";
-    const urlSearch = searchParams.get("search") || "";
+    const params = new URLSearchParams(searchParams.toString());
+    
+    // Only update parameter if debouncedSearch is different from URL parameter
+    if (debouncedSearch !== urlSearch) {
+      if (debouncedSearch) {
+        params.set("search", debouncedSearch);
+      } else {
+        params.delete("search");
+      }
+      params.delete("page"); // Reset page when query changes
+      router.replace(`/shop?${params.toString()}`, { scroll: false });
+    }
+  }, [debouncedSearch, urlSearch, searchParams, router]);
 
-    if (urlCategory !== selectedCategory) setSelectedCategory(urlCategory);
-    if (urlSearch !== search) setSearch(urlSearch);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  // UI Event Handlers directly update the URL parameters
+  const handleCategoryChange = (catId: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (catId) {
+      params.set("category", catId);
+    } else {
+      params.delete("category");
+    }
+    params.delete("page"); // Reset page on category change
+    router.replace(`/shop?${params.toString()}`, { scroll: false });
+  };
+
+  const handleSortChange = (newSort: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (newSort && newSort !== "latest") {
+      params.set("sort", newSort);
+    } else {
+      params.delete("sort");
+    }
+    params.delete("page"); // Reset page on sort change
+    router.replace(`/shop?${params.toString()}`, { scroll: false });
+  };
+
+  const handlePageChange = (newPage: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (newPage > 1) {
+      params.set("page", String(newPage));
+    } else {
+      params.delete("page");
+    }
+    router.replace(`/shop?${params.toString()}`, { scroll: false });
+  };
 
   const { data: categoriesData } = useQuery({
     queryKey: ["categories"],
@@ -83,10 +115,8 @@ function ShopPageContent() {
     )?.name;
 
   const clearFilters = () => {
-    setSearch("");
-    setSelectedCategory("");
-    setSort("latest");
-    setPage(1);
+    setSearchInput("");
+    router.replace("/shop", { scroll: false });
   };
 
   return (
@@ -111,13 +141,13 @@ function ShopPageContent() {
                 <label className="block text-sm font-medium mb-2">Search</label>
                 <input
                   type="text"
-                  value={search}
+                  value={searchInput}
                   onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
+                    setSearchInput(e.target.value);
                   }}
                   placeholder="Search sarees..."
                   className="w-full border p-2 rounded-xl text-sm outline-none focus:border-[#d4af37]"
+                  suppressHydrationWarning
                 />
               </div>
 
@@ -130,11 +160,9 @@ function ShopPageContent() {
                       name="category"
                       value=""
                       checked={selectedCategory === ""}
-                      onChange={() => {
-                        setSelectedCategory("");
-                        setPage(1);
-                      }}
+                      onChange={() => handleCategoryChange("")}
                       className="accent-[#d4af37]"
+                      suppressHydrationWarning
                     />
                     All Categories
                   </label>
@@ -152,11 +180,9 @@ function ShopPageContent() {
                           selectedCategory === cat._id ||
                           selectedCategory === cat.slug
                         }
-                        onChange={() => {
-                          setSelectedCategory(cat._id);
-                          setPage(1);
-                        }}
+                        onChange={() => handleCategoryChange(cat._id)}
                         className="accent-[#d4af37]"
+                        suppressHydrationWarning
                       />
                       {cat.name}
                     </label>
@@ -167,6 +193,7 @@ function ShopPageContent() {
               <button
                 onClick={clearFilters}
                 className="w-full border border-gray-300 text-gray-600 py-2 rounded-xl text-sm hover:bg-gray-50 transition"
+                suppressHydrationWarning
               >
                 Clear Filters
               </button>
@@ -182,11 +209,9 @@ function ShopPageContent() {
               <div className="relative">
                 <select
                   value={sort}
-                  onChange={(e) => {
-                    setSort(e.target.value);
-                    setPage(1);
-                  }}
+                  onChange={(e) => handleSortChange(e.target.value)}
                   className="border rounded-xl px-4 py-2 pr-8 text-sm outline-none appearance-none cursor-pointer"
+                  suppressHydrationWarning
                 >
                   {SORT_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -216,6 +241,7 @@ function ShopPageContent() {
                 <button
                   onClick={clearFilters}
                   className="mt-4 text-[#b8860b] underline text-sm"
+                  suppressHydrationWarning
                 >
                   Clear filters
                 </button>
@@ -231,9 +257,10 @@ function ShopPageContent() {
             {totalPages > 1 && (
               <div className="flex justify-center gap-2 mt-12">
                 <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  onClick={() => handlePageChange(Math.max(1, page - 1))}
                   disabled={page === 1}
                   className="px-4 py-2 border rounded-xl disabled:opacity-40 hover:bg-gray-50 text-sm"
+                  suppressHydrationWarning
                 >
                   Previous
                 </button>
@@ -241,21 +268,23 @@ function ShopPageContent() {
                 {[...Array(totalPages)].map((_, i) => (
                   <button
                     key={i}
-                    onClick={() => setPage(i + 1)}
+                    onClick={() => handlePageChange(i + 1)}
                     className={`px-4 py-2 rounded-xl text-sm ${
                       page === i + 1
                         ? "bg-[#d4af37] text-white"
                         : "border hover:bg-gray-50"
                     }`}
+                    suppressHydrationWarning
                   >
                     {i + 1}
                   </button>
                 ))}
 
                 <button
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  onClick={() => handlePageChange(Math.min(totalPages, page + 1))}
                   disabled={page === totalPages}
                   className="px-4 py-2 border rounded-xl disabled:opacity-40 hover:bg-gray-50 text-sm"
+                  suppressHydrationWarning
                 >
                   Next
                 </button>

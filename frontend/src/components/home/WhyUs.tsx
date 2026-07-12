@@ -42,7 +42,7 @@ export default function WhyUs() {
             Why Choose Us
           </p>
           <h2 className="text-4xl md:text-5xl font-bold mt-3">
-            The Suhagan Promise
+            The Kaumudi Promise
           </h2>
           <p className="text-gray-400 mt-4 max-w-xl mx-auto">
             We&apos;re not just an online store — we&apos;re the factory. Every saree you

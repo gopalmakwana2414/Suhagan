@@ -53,7 +53,7 @@ export default function AdminLayout({
     <div className="flex flex-col h-full">
       {/* Logo */}
       <div className="px-6 py-6 border-b">
-        <Logo height={196} />
+        <Logo />
         <p className="text-xs text-gray-400 mt-1.5">Admin Panel</p>
       </div>
 
@@ -85,6 +85,7 @@ export default function AdminLayout({
         <button
           onClick={handleLogout}
           className="flex items-center gap-2 w-full px-4 py-2.5 text-red-500 hover:bg-red-50 rounded-xl transition text-sm font-medium"
+          suppressHydrationWarning
         >
           <LogOut size={16} />
           Logout

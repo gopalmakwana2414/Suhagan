@@ -5,6 +5,17 @@ export interface IUser extends Document {
   email: string;
   password: string;
   role: "user" | "admin";
+  mobile?: string;
+  emailVerified: boolean;
+  mobileVerified: boolean;
+  houseNumber?: string;
+  street?: string;
+  landmark?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postalCode?: string;
+  address?: string;
   // Reset flow stores only a SHA-256 hash of the token, never the raw
   // token itself — mirrors how the password hash works, so a database
   // leak can't be used to reset accounts directly.
@@ -41,6 +52,64 @@ const userSchema = new Schema<IUser>(
       default: "user",
     },
 
+    mobile: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+    },
+
+    emailVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    mobileVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    houseNumber: {
+      type: String,
+      trim: true,
+    },
+
+    street: {
+      type: String,
+      trim: true,
+    },
+
+    landmark: {
+      type: String,
+      trim: true,
+    },
+
+    city: {
+      type: String,
+      trim: true,
+    },
+
+    state: {
+      type: String,
+      trim: true,
+    },
+
+    country: {
+      type: String,
+      default: "India",
+      trim: true,
+    },
+
+    postalCode: {
+      type: String,
+      trim: true,
+    },
+
+    address: {
+      type: String,
+      trim: true,
+    },
+
     resetPasswordToken: {
       type: String,
       select: false,
@@ -56,4 +125,4 @@ const userSchema = new Schema<IUser>(
   }
 );
 
-export const User = mongoose.model<IUser>("User", userSchema);
+export const User = mongoose.model<IUser>("User", userSchema);

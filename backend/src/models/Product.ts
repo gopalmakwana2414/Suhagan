@@ -200,7 +200,27 @@ const productSchema = new Schema<IProduct>(
 );
 
 // Indexes
-productSchema.index({ name: "text" });
+productSchema.index(
+  {
+    name: "text",
+    sku: "text",
+    shortDescription: "text",
+    fabric: "text",
+    color: "text",
+    occasion: "text",
+  },
+  {
+    weights: {
+      name: 10,
+      sku: 8,
+      shortDescription: 5,
+      fabric: 3,
+      color: 2,
+      occasion: 2,
+    },
+    name: "ProductTextIndex",
+  }
+);
 productSchema.index({ category: 1 });
 productSchema.index({ featured: 1 });
 productSchema.index({ bestseller: 1 });

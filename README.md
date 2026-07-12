@@ -1,4 +1,4 @@
-# SUHAGAN — Complete Project (Consolidated)
+# KAUMUDI — Complete Project (Consolidated)
 
 This is the full project, not a diff — extract and it's ready to run
 (npm install in each of frontend/ and backend/, then npm run dev).

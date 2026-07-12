@@ -23,7 +23,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Suhagan",
+  title: "Kaumudi",
   description: "Premium Saree Collection",
 };
 

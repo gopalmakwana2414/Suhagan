@@ -32,3 +32,26 @@ export const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// Strict limiter for sending OTPs — prevents SMS/email spam/abuse
+export const otpSendLimiter = rateLimit({
+  windowMs: 2 * 60 * 1000, // 2 minutes
+  max: 3, // limit each IP to 3 OTP requests per window
+  message: {
+    message: "Too many OTP requests. Please wait a couple of minutes.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Strict limiter for verifying OTPs — prevents brute force guessing
+export const otpVerifyLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 10, // limit each IP to 10 attempts per window
+  message: {
+    message: "Too many verification attempts. Please try again after 5 minutes.",
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+

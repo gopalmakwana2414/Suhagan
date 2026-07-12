@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Refund & Return Policy | Suhagan",
-  description: "Suhagan return and refund policy — 7-day easy returns on all orders.",
+  title: "Refund & Return Policy | Kaumudi",
+  description: "Kaumudi return and refund policy — 7-day easy returns on all orders.",
 };
 
 export default function RefundPolicyPage() {
@@ -19,7 +19,7 @@ export default function RefundPolicyPage() {
               ✅ 7-Day Easy Return Policy
             </h2>
             <p className="text-gray-600">
-              We want you to love your Suhagan saree. If you&apos;re not completely satisfied,
+              We want you to love your Kaumudi saree. If you&apos;re not completely satisfied,
               you may return most items within <strong>7 days</strong> of delivery for an
               exchange or refund.
             </p>

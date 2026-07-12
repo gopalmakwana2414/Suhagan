@@ -82,13 +82,13 @@ export default function Hero() {
             ) : banner?.image?.url ? (
               <img
                 src={optimizedCloudinaryUrl(banner.image.url, 1600)}
-                alt={banner.title || "Suhagan Saree Collection"}
+                alt={banner.title || "Kaumudi Saree Collection"}
                 className="rounded-3xl shadow-2xl w-full object-cover h-[650px]"
               />
             ) : (
               <div className="rounded-3xl shadow-2xl w-full h-[650px] hero-gradient border border-[#eee0c0] flex flex-col items-center justify-center text-center px-10">
                 <p className="text-[#b8860b] font-semibold uppercase tracking-[3px] text-sm">
-                  Suhagan
+                  Kaumudi
                 </p>
                 <p className="text-gray-400 mt-3 text-sm max-w-xs">
                   No hero banner has been added yet. Add one from Admin → Hero

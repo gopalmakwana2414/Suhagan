@@ -93,7 +93,7 @@ export const createProduct = async (
     const thumbnailUpload =
       await uploadToCloudinary(
         files.thumbnail[0].buffer,
-        "suhagan/products/thumbnails"
+        "kaumudi/products/thumbnails"
       );
 
     const thumbnail = {
@@ -111,7 +111,7 @@ export const createProduct = async (
         files.images.map((file) =>
           uploadToCloudinary(
             file.buffer,
-            "suhagan/products/gallery"
+            "kaumudi/products/gallery"
           )
         )
       );
@@ -202,58 +202,9 @@ export const getProducts = async (
       isActive: true,
     };
 
-    // text search across the fields customers actually search by
+    // text search using the compound text index (name, sku, fabric, color, occasion, shortDescription)
     if (search) {
-      query.$or = [
-        {
-          name: {
-            $regex: String(search),
-            $options: "i",
-          },
-        },
-        {
-          slug: {
-            $regex: String(search),
-            $options: "i",
-          },
-        },
-        {
-          sku: {
-            $regex: String(search),
-            $options: "i",
-          },
-        },
-        {
-          shortDescription: {
-            $regex: String(search),
-            $options: "i",
-          },
-        },
-        {
-          description: {
-            $regex: String(search),
-            $options: "i",
-          },
-        },
-        {
-          fabric: {
-            $regex: String(search),
-            $options: "i",
-          },
-        },
-        {
-          color: {
-            $regex: String(search),
-            $options: "i",
-          },
-        },
-        {
-          occasion: {
-            $regex: String(search),
-            $options: "i",
-          },
-        },
-      ];
+      query.$text = { $search: String(search) };
     }
 
     // category can come in as either a slug or a name from the frontend

@@ -4,40 +4,30 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 
-// __dirname isn't available in ESM (package.json has "type": "module"),
-// so this is the ESM-safe way to get it
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const GOLD = "#b8860b";
 const GOLD_DARK = "#9c7419";
-const DARK = "#1f1f1f";
-const GRAY = "#8a8a8a";
+const DARK = "#222222";
+const GRAY = "#888888";
 const LIGHT_BG = "#fff8e7";
 const BORDER = "#eeeeee";
 const PAGE_LEFT = 50;
 const PAGE_RIGHT = 545;
 const PAGE_WIDTH = PAGE_RIGHT - PAGE_LEFT;
 
-// drop logo.png / signature.png in src/assets to use them — falls back
-// to plain text if either file is missing
-const LOGO_PATH = path.join(__dirname, "..", "assets", "logo.png");
 const SIGNATURE_PATH = path.join(__dirname, "..", "assets", "signature.png");
-
-// Helvetica can't render Hindi/Devanagari, so addresses with non-Latin
-// text came out as garbled bytes. This font covers both Devanagari and
-// standard Latin, so English addresses still look the same as before.
-const UNICODE_FONT_PATH = path.join(
+const NIRMALA_FONT_PATH = path.join(
   __dirname,
   "..",
   "assets",
   "fonts",
-  "NotoSansDevanagari.ttf"
+  "Nirmala.ttc"
 );
-const UNICODE_FONT = "UnicodeSafe";
-const COMPANY_NAME = "Suhagan Sarees";
-const COMPANY_TAGLINE = "Premium Handcrafted Sarees from Surat";
-const COMPANY_ADDRESS = "Suhagan Sarees, Ring Road, Surat, Gujarat - 395002";
+
+const COMPANY_NAME = "Kaumudi Sarees";
+const COMPANY_ADDRESS = "Kaumudi Sarees, Ring Road, Surat, Gujarat - 395002";
 const COMPANY_EMAIL = "g91652251@gmail.com";
 const COMPANY_PHONE = "+91 89594 65264";
 
@@ -69,71 +59,43 @@ interface InvoiceOrder {
   user: { name: string; email: string };
 }
 
-// Currency formatter — used everywhere a Rupee amount is printed so the
-// invoice is consistent (thousands separators, no decimals for whole INR).
 const inr = (amount: number) =>
-  `Rs. ${Math.round(amount).toLocaleString("en-IN")}`;
+  `₹ ${Math.round(amount).toLocaleString("en-IN")}`;
 
 /**
- * Streams a branded, production-quality PDF invoice for the given order
- * directly to the HTTP response.
+ * Draws the original invoice design on the given PDFKit document
  */
-export const generateInvoicePDF = (order: InvoiceOrder, res: Response) => {
-  const doc = new PDFDocument({ size: "A4", margin: 0 });
-
+const drawOriginalInvoice = (doc: PDFKit.PDFDocument, order: InvoiceOrder) => {
   const orderId = order._id.toString().slice(-8).toUpperCase();
 
-  res.setHeader("Content-Type", "application/pdf");
-  res.setHeader(
-    "Content-Disposition",
-    `attachment; filename=Suhagan-Invoice-${orderId}.pdf`
-  );
-
-  doc.pipe(res);
-
-  // customer-entered fields use this font instead of Helvetica so
-  // non-Latin text renders correctly; falls back to Helvetica if missing
-  const hasUnicodeFont = fs.existsSync(UNICODE_FONT_PATH);
-  if (hasUnicodeFont) {
-    doc.registerFont(UNICODE_FONT, UNICODE_FONT_PATH);
+  const hasNirmala = fs.existsSync(NIRMALA_FONT_PATH);
+  if (hasNirmala) {
+    doc.registerFont("Nirmala", NIRMALA_FONT_PATH, "NirmalaUI");
+    doc.registerFont("Nirmala-Bold", NIRMALA_FONT_PATH, "NirmalaUI-Bold");
   }
-  const safeFont = hasUnicodeFont ? UNICODE_FONT : "Helvetica";
+  const fontRegular = hasNirmala ? "Nirmala" : "Helvetica";
+  const fontBold = hasNirmala ? "Nirmala-Bold" : "Helvetica-Bold";
 
   // header band
-  const headerHeight = 118;
+  const headerHeight = 110;
   doc.rect(0, 0, doc.page.width, headerHeight).fill(GOLD);
 
-  const logoExists = fs.existsSync(LOGO_PATH);
-
-  if (logoExists) {
-    // Logo image, vertically centered in the header band.
-    try {
-      doc.image(LOGO_PATH, PAGE_LEFT, 28, { height: 46 });
-    } catch {
-      renderWordmark(doc);
-    }
-  } else {
-    renderWordmark(doc);
-  }
-
-  function renderWordmark(d: PDFKit.PDFDocument) {
-    d.fillColor("#ffffff")
-      .font("Helvetica-Bold")
-      .fontSize(26)
-      .text(COMPANY_NAME.toUpperCase(), PAGE_LEFT, 34);
+  const LOGO_PATH = path.join(__dirname, "..", "assets", "kaumodi.png");
+  if (fs.existsSync(LOGO_PATH)) {
+    doc.image(LOGO_PATH, PAGE_LEFT, 30, { height: 50 });
   }
 
   doc
-    .fontSize(9.5)
-    .font("Helvetica")
-    .fillColor("#fdf3d8")
-    .text(COMPANY_TAGLINE, PAGE_LEFT, logoExists ? 80 : 68);
-
-  doc
-    .fontSize(22)
-    .font("Helvetica-Bold")
     .fillColor("#ffffff")
-    .text("INVOICE", 0, 42, { align: "right", width: PAGE_RIGHT });
+    .fontSize(28)
+    .font(fontBold)
+    .text("KAUMUDI", PAGE_LEFT + 130, 42);
+
+  doc
+    .fontSize(20)
+    .font(fontBold)
+    .fillColor("#ffffff")
+    .text("INVOICE", 0, 40, { align: "right", width: PAGE_RIGHT });
 
   // meta row — invoice #, date, status
   const metaTop = headerHeight + 30;
@@ -142,22 +104,23 @@ export const generateInvoicePDF = (order: InvoiceOrder, res: Response) => {
     x: number,
     label: string,
     value: string,
-    valueColor = DARK
+    valueColor = DARK,
+    useBold = false
   ) => {
     doc
       .fontSize(9)
-      .font("Helvetica-Bold")
+      .font(fontBold)
       .fillColor(GRAY)
       .text(label, x, metaTop, { characterSpacing: 0.5 })
       .fontSize(13)
-      .font("Helvetica-Bold")
+      .font(useBold ? fontBold : fontRegular)
       .fillColor(valueColor)
       .text(value, x, metaTop + 14);
   };
 
-  metaCol(PAGE_LEFT, "INVOICE NUMBER", `#${orderId}`);
+  metaCol(PAGE_LEFT, "INVOICE NUMBER", `#${orderId}`, DARK, true);
   metaCol(
-    230,
+    220,
     "ORDER DATE",
     new Date(order.createdAt).toLocaleDateString("en-IN", {
       day: "numeric",
@@ -166,7 +129,7 @@ export const generateInvoicePDF = (order: InvoiceOrder, res: Response) => {
     })
   );
   metaCol(
-    410,
+    400,
     "PAYMENT STATUS",
     order.paymentStatus.toUpperCase(),
     order.paymentStatus === "paid" ? "#16a34a" : "#d97706"
@@ -181,75 +144,81 @@ export const generateInvoicePDF = (order: InvoiceOrder, res: Response) => {
 
   // bill to / ship to
   const addrTop = metaTop + 68;
-  const addr = order.shippingAddress;
+  const addr = order.shippingAddress || {
+    fullName: "",
+    addressLine1: "",
+    addressLine2: "",
+    city: "",
+    state: "",
+    postalCode: "",
+    country: "",
+    mobileNumber: ""
+  };
 
   doc
-    .fontSize(9)
-    .font("Helvetica-Bold")
+    .fontSize(10)
+    .font(fontBold)
     .fillColor(GRAY)
     .text("BILLED TO", PAGE_LEFT, addrTop);
 
   doc
-    .fontSize(11.5)
-    .font(safeFont)
+    .fontSize(11)
+    .font(fontBold)
     .fillColor(DARK)
     .text(order.user?.name || addr.fullName, PAGE_LEFT, addrTop + 16);
 
   doc
-    .fontSize(9.5)
-    .font(safeFont)
+    .fontSize(10)
+    .font(fontRegular)
     .fillColor(GRAY)
-    .text(order.user?.email || "", PAGE_LEFT, addrTop + 33);
+    .text(order.user?.email || "", PAGE_LEFT, addrTop + 32);
 
-  const shipX = 310;
+  const shipX = 320;
   doc
-    .fontSize(9)
-    .font("Helvetica-Bold")
+    .fontSize(10)
+    .font(fontBold)
     .fillColor(GRAY)
     .text("SHIPPING ADDRESS", shipX, addrTop);
 
-  // Sanitize address fields defensively — strips any non-printable /
-  // control characters so a bad legacy record can't corrupt the PDF
-  // layout the way it did before (garbled bytes in the address block).
-  const clean = (value?: string) =>
-    (value || "")
-      // eslint-disable-next-line no-control-regex
-      .replace(/[\u0000-\u001F\u007F-\u009F]/g, "")
-      .trim();
-
   const addressLines = [
-    clean(addr.fullName),
-    `${clean(addr.addressLine1)}${
-      addr.addressLine2 ? ", " + clean(addr.addressLine2) : ""
-    }`,
-    `${clean(addr.city)}, ${clean(addr.state)} - ${clean(addr.postalCode)}`,
-    `Phone: ${clean(addr.mobileNumber)}`,
-  ].filter(Boolean);
+    addr.fullName,
+    addr.addressLine1,
+    addr.addressLine2 || "",
+    `${addr.city}, ${addr.state} - ${addr.postalCode}`,
+    addr.country,
+    `Phone: ${addr.mobileNumber}`,
+  ].filter(line => line && line.trim() !== "");
+
+  const addressText = addressLines.join("\n");
 
   doc
-    .fontSize(9.5)
-    .font(safeFont)
+    .fontSize(10)
+    .font(fontRegular)
     .fillColor(DARK)
-    .text(addressLines.join("\n"), shipX, addrTop + 16, {
+    .text(addressText, shipX, addrTop + 16, {
       width: PAGE_RIGHT - shipX,
       lineGap: 3,
     });
 
-  // items table
-  let tableTop = addrTop + 120;
+  const addressHeight = doc.heightOfString(addressText, {
+    width: PAGE_RIGHT - shipX,
+    lineGap: 3,
+  });
 
-  doc.rect(PAGE_LEFT, tableTop, PAGE_WIDTH, 28).fill(LIGHT_BG);
+  // items table starts dynamically based on address block height
+  let tableTop = Math.max(addrTop + 120, addrTop + 16 + addressHeight + 25);
+
+  doc.rect(PAGE_LEFT, tableTop, PAGE_WIDTH, 26).fill(LIGHT_BG);
   doc
-    .fontSize(9.5)
-    .font("Helvetica-Bold")
+    .fontSize(10)
+    .font(fontBold)
     .fillColor(GOLD_DARK)
-    .text("ITEM", PAGE_LEFT + 12, tableTop + 9)
-    .text("QTY", 330, tableTop + 9, { width: 50, align: "center" })
-    .text("PRICE", 390, tableTop + 9, { width: 70, align: "right" })
-    .text("TOTAL", 470, tableTop + 9, { width: 65, align: "right" });
+    .text("ITEM", PAGE_LEFT + 10, tableTop + 8)
+    .text("QTY", 330, tableTop + 8, { width: 50, align: "center" })
+    .text("PRICE", 390, tableTop + 8, { width: 70, align: "right" })
+    .text("TOTAL", 470, tableTop + 8, { width: 65, align: "right" });
 
-  let rowY = tableTop + 28;
-  const rowHeight = 26;
+  let rowY = tableTop + 26;
 
   order.items.forEach((item, idx) => {
     const name =
@@ -257,110 +226,187 @@ export const generateInvoicePDF = (order: InvoiceOrder, res: Response) => {
       "Saree Product";
     const lineTotal = item.price * item.quantity;
 
+    const nameHeight = doc.heightOfString(name, { width: 260 });
+    const rowHeight = Math.max(26, nameHeight + 14);
+
+    // Auto page wrap
+    if (rowY + rowHeight > 730) {
+      doc.addPage({ size: "A4", margin: 0 });
+      
+      const pageHeaderY = 40;
+      doc
+        .fontSize(8)
+        .fillColor(GRAY)
+        .font(fontBold)
+        .text(`INVOICE: #${orderId}`, PAGE_LEFT, pageHeaderY)
+        .text(`Page ${doc.bufferedPageRange().count}`, 0, pageHeaderY, { align: "right", width: PAGE_RIGHT });
+      
+      doc
+        .moveTo(PAGE_LEFT, pageHeaderY + 14)
+        .lineTo(PAGE_RIGHT, pageHeaderY + 14)
+        .strokeColor(BORDER)
+        .lineWidth(1)
+        .stroke();
+
+      tableTop = pageHeaderY + 25;
+      doc.rect(PAGE_LEFT, tableTop, PAGE_WIDTH, 26).fill(LIGHT_BG);
+      doc
+        .fontSize(10)
+        .font(fontBold)
+        .fillColor(GOLD_DARK)
+        .text("ITEM", PAGE_LEFT + 10, tableTop + 8)
+        .text("QTY", 330, tableTop + 8, { width: 50, align: "center" })
+        .text("PRICE", 390, tableTop + 8, { width: 70, align: "right" })
+        .text("TOTAL", 470, tableTop + 8, { width: 65, align: "right" });
+
+      rowY = tableTop + 26;
+    }
+
     if (idx % 2 === 1) {
       doc.rect(PAGE_LEFT, rowY, PAGE_WIDTH, rowHeight).fill("#fafafa");
     }
 
     doc
-      .fontSize(9.5)
-      .font(safeFont)
+      .fontSize(10)
+      .font(fontRegular)
       .fillColor(DARK)
-      .text(name, PAGE_LEFT + 12, rowY + 8, { width: 260 })
-      .text(String(item.quantity), 330, rowY + 8, {
+      .text(name, PAGE_LEFT + 10, rowY + 7, { width: 260 })
+      .text(String(item.quantity), 330, rowY + 7, {
         width: 50,
         align: "center",
       })
-      .text(inr(item.price), 390, rowY + 8, { width: 70, align: "right" })
-      .text(inr(lineTotal), 470, rowY + 8, { width: 65, align: "right" });
+      .text(inr(item.price), 390, rowY + 7, { width: 70, align: "right" })
+      .text(inr(lineTotal), 470, rowY + 7, { width: 65, align: "right" });
 
     rowY += rowHeight;
   });
 
   doc
-    .moveTo(PAGE_LEFT, rowY + 4)
-    .lineTo(PAGE_RIGHT, rowY + 4)
+    .moveTo(PAGE_LEFT, rowY + 5)
+    .lineTo(PAGE_RIGHT, rowY + 5)
     .strokeColor(BORDER)
+    .lineWidth(1)
     .stroke();
 
-  // totals block — label and value columns kept apart so "GRAND TOTAL"
-  // doesn't run into its number like it used to
-  const totalsLabelX = 300;
-  const totalsLabelWidth = 155; // ends at x = 455
-  const totalsValueX = 465;      // starts 10px after the label ends
-  const totalsValueWidth = 80;   // ends at x = 545 = PAGE_RIGHT
+  // Totals calculations
+  let subtotal = 0;
+  order.items.forEach(item => {
+    subtotal += item.price * item.quantity;
+  });
+  const discount = order.discountAmount || 0;
+  const shipping = Math.max(0, order.totalAmount + discount - subtotal);
+  const tax = 0;
 
-  let totalsY = rowY + 22;
+  // Add page if totals section doesn't fit
+  if (rowY + 140 > 730) {
+    doc.addPage({ size: "A4", margin: 0 });
 
-  const totalsRow = (
-    label: string,
-    value: string,
-    opts: { bold?: boolean; muted?: boolean } = {}
-  ) => {
+    const pageHeaderY = 40;
     doc
-      .fontSize(opts.bold ? 10.5 : 10)
-      .font(opts.bold ? "Helvetica-Bold" : "Helvetica")
-      .fillColor(opts.muted ? GRAY : DARK)
+      .fontSize(8)
+      .fillColor(GRAY)
+      .font(fontBold)
+      .text(`INVOICE: #${orderId}`, PAGE_LEFT, pageHeaderY)
+      .text(`Page ${doc.bufferedPageRange().count}`, 0, pageHeaderY, { align: "right", width: PAGE_RIGHT });
+
+    doc
+      .moveTo(PAGE_LEFT, pageHeaderY + 14)
+      .lineTo(PAGE_RIGHT, pageHeaderY + 14)
+      .strokeColor(BORDER)
+      .lineWidth(1)
+      .stroke();
+
+    rowY = pageHeaderY + 25;
+  }
+
+  let totalsY = rowY + 20;
+  const totalsLabelX = 330;
+  const totalsLabelWidth = 130;
+  const totalsValueX = 470;
+  const totalsValueWidth = 75;
+
+  const totalsRow = (label: string, value: string) => {
+    doc
+      .fontSize(10)
+      .font(fontRegular)
+      .fillColor(GRAY)
       .text(label, totalsLabelX, totalsY, {
         width: totalsLabelWidth,
         align: "right",
       })
+      .fillColor(DARK)
       .text(value, totalsValueX, totalsY, {
         width: totalsValueWidth,
         align: "right",
       });
-    totalsY += 20;
+    totalsY += 18;
   };
 
-  const subtotal =
-    order.totalAmount + (order.discountAmount || 0);
+  totalsRow("Subtotal", inr(subtotal));
 
-  totalsRow("Subtotal", inr(subtotal), { muted: true });
-
-  if (order.discountAmount && order.discountAmount > 0) {
-    totalsRow(
-      order.couponCode ? `Discount (${order.couponCode})` : "Discount",
-      `- ${inr(order.discountAmount)}`,
-      { muted: true }
-    );
+  if (discount > 0) {
+    const discountLabel = order.couponCode ? `Discount (${order.couponCode})` : "Discount";
+    totalsRow(discountLabel, `- ${inr(discount)}`);
   }
 
+  totalsRow("Shipping", shipping > 0 ? inr(shipping) : "Free");
+  totalsRow("Tax", inr(tax));
   totalsRow(
     "Payment Method",
-    order.paymentMethod === "COD" ? "Cash on Delivery" : "Online",
-    { muted: true }
+    order.paymentMethod === "COD" ? "Cash on Delivery" : "Online"
   );
 
   totalsY += 6;
 
-  const grandTotalBoxHeight = 36;
+  // Grand Total Box
+  doc.rect(320, totalsY - 6, 225, 32).fill(GOLD);
   doc
-    .rect(totalsLabelX, totalsY, PAGE_RIGHT - totalsLabelX, grandTotalBoxHeight)
-    .fill(GOLD);
-
-  doc
-    .fontSize(12.5)
-    .font("Helvetica-Bold")
+    .fontSize(12)
+    .font(fontBold)
     .fillColor("#ffffff")
-    .text("GRAND TOTAL", totalsLabelX + 14, totalsY + 11, {
-      width: totalsLabelWidth - 14,
-      align: "left",
+    .text("GRAND TOTAL", 330, totalsY + 3, {
+      width: totalsLabelWidth,
+      align: "right",
     })
-    .text(inr(order.totalAmount), totalsValueX, totalsY + 11, {
-      width: totalsValueWidth - 10,
+    .text(inr(order.totalAmount), totalsValueX, totalsY + 3, {
+      width: totalsValueWidth,
       align: "right",
     });
 
-  // authorized signature
-  const signatureTop = totalsY + grandTotalBoxHeight + 60;
-  const signatureExists = fs.existsSync(SIGNATURE_PATH);
+  totalsY += 32;
 
+  // Authorized signature
+  let signatureTop = totalsY + 40;
+
+  if (signatureTop + 40 > 730) {
+    doc.addPage({ size: "A4", margin: 0 });
+
+    const pageHeaderY = 40;
+    doc
+      .fontSize(8)
+      .fillColor(GRAY)
+      .font(fontBold)
+      .text(`INVOICE: #${orderId}`, PAGE_LEFT, pageHeaderY)
+      .text(`Page ${doc.bufferedPageRange().count}`, 0, pageHeaderY, { align: "right", width: PAGE_RIGHT });
+
+    doc
+      .moveTo(PAGE_LEFT, pageHeaderY + 14)
+      .lineTo(PAGE_RIGHT, pageHeaderY + 14)
+      .strokeColor(BORDER)
+      .lineWidth(1)
+      .stroke();
+
+    signatureTop = pageHeaderY + 50;
+  }
+
+  const signatureExists = fs.existsSync(SIGNATURE_PATH);
   if (signatureExists) {
     try {
       doc.image(SIGNATURE_PATH, PAGE_RIGHT - 160, signatureTop - 42, {
         width: 140,
       });
     } catch {
-      /* fall through to the line-only signature block below */
+      /* fall through */
     }
   }
 
@@ -371,8 +417,8 @@ export const generateInvoicePDF = (order: InvoiceOrder, res: Response) => {
     .stroke();
 
   doc
-    .fontSize(9.5)
-    .font("Helvetica-Bold")
+    .fontSize(10)
+    .font(fontBold)
     .fillColor(DARK)
     .text(COMPANY_NAME, PAGE_RIGHT - 160, signatureTop + 8, {
       width: 160,
@@ -381,40 +427,93 @@ export const generateInvoicePDF = (order: InvoiceOrder, res: Response) => {
 
   doc
     .fontSize(8)
-    .font("Helvetica")
+    .font(fontRegular)
     .fillColor(GRAY)
     .text("Authorized Signatory", PAGE_RIGHT - 160, signatureTop + 22, {
       width: 160,
       align: "center",
     });
 
-  // footer
-  const footerY = doc.page.height - 90;
+  // Render footers dynamically on all pages at the end
+  const range = doc.bufferedPageRange();
+  for (let i = range.start; i < range.start + range.count; i++) {
+    doc.switchToPage(i);
+    const footerY = doc.page.height - 90;
 
-  doc
-    .moveTo(PAGE_LEFT, footerY)
-    .lineTo(PAGE_RIGHT, footerY)
-    .strokeColor(BORDER)
-    .stroke();
+    doc
+      .moveTo(PAGE_LEFT, footerY)
+      .lineTo(PAGE_RIGHT, footerY)
+      .strokeColor(BORDER)
+      .lineWidth(1)
+      .stroke();
 
-  doc
-    .fontSize(9)
-    .font("Helvetica")
-    .fillColor(GRAY)
-    .text(
-      `Thank you for shopping with ${COMPANY_NAME}! For any queries regarding this order, contact us at ${COMPANY_EMAIL} or ${COMPANY_PHONE}.`,
-      PAGE_LEFT,
-      footerY + 14,
-      { width: PAGE_WIDTH, align: "center" }
+    doc
+      .fontSize(9)
+      .font(fontRegular)
+      .fillColor(GRAY)
+      .text(
+        `Thank you for shopping with ${COMPANY_NAME}! For any queries regarding this order, contact us at ${COMPANY_EMAIL} or ${COMPANY_PHONE}.`,
+        PAGE_LEFT,
+        footerY + 14,
+        { width: PAGE_WIDTH, align: "center" }
+      );
+
+    doc
+      .fontSize(8)
+      .font(fontRegular)
+      .fillColor("#bbbbbb")
+      .text(COMPANY_ADDRESS, PAGE_LEFT, footerY + 38, {
+        width: PAGE_WIDTH,
+        align: "center",
+      });
+  }
+};
+
+/**
+ * Generates the original visual invoice design as a memory buffer
+ */
+export const generateInvoicePDFBuffer = async (order: InvoiceOrder): Promise<Buffer> => {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ size: "A4", margin: 0, bufferPages: true });
+      const chunks: Buffer[] = [];
+
+      doc.on("data", (chunk) => chunks.push(chunk));
+      doc.on("end", () => resolve(Buffer.concat(chunks)));
+      doc.on("error", (err) => reject(err));
+
+      drawOriginalInvoice(doc, order);
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+};
+
+/**
+ * Streams the original visual invoice design directly to Express Response
+ */
+export const generateInvoicePDF = async (order: InvoiceOrder, res: Response) => {
+  try {
+    const orderId = order._id.toString().slice(-8).toUpperCase();
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename=Kaumudi-Invoice-${orderId}.pdf`
     );
 
-  doc
-    .fontSize(8)
-    .fillColor("#bbbbbb")
-    .text(COMPANY_ADDRESS, PAGE_LEFT, footerY + 38, {
-      width: PAGE_WIDTH,
-      align: "center",
-    });
+    const doc = new PDFDocument({ size: "A4", margin: 0, bufferPages: true });
+    doc.pipe(res);
 
-  doc.end();
+    drawOriginalInvoice(doc, order);
+    doc.end();
+  } catch (error: any) {
+    console.error("Error generating invoice stream:", error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        message: "Failed to generate invoice PDF",
+        error: error.message,
+      });
+    }
+  }
 };

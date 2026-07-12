@@ -98,7 +98,7 @@ app.use("/api/contact", contactLimiter, contactRoutes);
 app.get("/health", (req, res) => {
   res.status(200).json({
     success: true,
-    message: "Suhagan API is running",
+    message: "Kaumudi API is running",
     timestamp: new Date().toISOString(),
   });
 });

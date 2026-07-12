@@ -10,7 +10,7 @@ export default function AdminSettingsPage() {
 
   // Store settings are currently informational — wire to a Settings API later
   const [storeInfo, setStoreInfo] = useState({
-    storeName: "Suhagan",
+    storeName: "Kaumudi",
     email: "g91652251@gmail.com",
     phone: "+91 89594 65264",
     address: "Ring Road, Surat, Gujarat – 395002",

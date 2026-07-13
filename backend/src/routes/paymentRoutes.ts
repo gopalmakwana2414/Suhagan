@@ -7,6 +7,7 @@ import {
 import { handleWebhook } from "../controllers/webhookController.js";
 
 import { protect } from "../middlewares/auth.js";
+import { customerOnly } from "../middlewares/customer.js";
 import { createOrderLimiter, verifyPaymentLimiter } from "../middlewares/rateLimiter.js";
 
 const router = express.Router();
@@ -15,6 +16,7 @@ const router = express.Router();
 router.post(
   "/create-order",
   protect,
+  customerOnly,
   createOrderLimiter,
   createRazorpayOrder
 );
@@ -23,6 +25,7 @@ router.post(
 router.post(
   "/verify",
   protect,
+  customerOnly,
   verifyPaymentLimiter,
   verifyPaymentAndCreateOrder
 );
@@ -31,6 +34,7 @@ router.post(
 router.post(
   "/cod",
   protect,
+  customerOnly,
   createOrderLimiter,
   createCODOrder
 );

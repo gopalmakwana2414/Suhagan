@@ -105,7 +105,7 @@ const processInvoiceAndEmail = async (orderId: string) => {
   const order = await Order.findById(orderId)
     .populate("shippingAddress")
     .populate("items.product", "name sku thumbnail originalPrice salePrice")
-    .populate("user", "name email");
+    .populate("user", "name email mobile");
 
   if (!order) {
     throw new Error(`Order ${orderId} not found for invoice and emails`);
@@ -156,14 +156,7 @@ const processInvoiceAndEmail = async (orderId: string) => {
 
   // Send admin alert
   try {
-    await sendAdminOrderAlert({
-      orderId: order._id.toString(),
-      customerName: user.name,
-      customerEmail: user.email,
-      totalAmount: order.totalAmount,
-      paymentMethod: order.paymentMethod,
-      itemCount: order.totalItems,
-    });
+    await sendAdminOrderAlert(order);
   } catch (adminErr: any) {
     logger.error(`Admin order alert email failed for order ${order._id}: ${adminErr.message}`);
     // Do not fail the whole job if the admin alert email fails, since the customer invoice was sent

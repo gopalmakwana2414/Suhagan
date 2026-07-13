@@ -180,14 +180,30 @@ import { generateInvoicePDF } from "../services/invoiceService";
 
 export const downloadInvoice = async (req: Request, res: Response) => {
   try {
-    const userId = (req as any).user.id;
-    const userRole = (req as any).user.role;
+    const user = (req as any).user;
+    const jwtPayload = (req as any).jwtPayload;
+
+    if (!user || !jwtPayload) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const isUserAdmin = user.role === "admin";
+    const isJwtAdmin = jwtPayload.role === "admin";
+    const isAdmin = isUserAdmin && isJwtAdmin;
+
+    const isUserCustomer = user.role === "customer" || user.role === "user";
+    const isJwtCustomer = jwtPayload.role === "customer" || jwtPayload.role === "user";
+    const isCustomer = isUserCustomer && isJwtCustomer;
 
     const filter: any = { _id: req.params.id };
 
-    // Customers can only download their own invoice; admins can download any.
-    if (userRole !== "admin") {
-      filter.user = userId;
+    if (isAdmin) {
+      // Admin can download any invoice
+    } else if (isCustomer) {
+      // Customer can only download their own invoice
+      filter.user = user.id || user._id;
+    } else {
+      return res.status(403).json({ message: "Unauthorized" });
     }
 
     const order = await Order.findOne(filter)

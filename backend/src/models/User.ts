@@ -21,6 +21,11 @@ export interface IUser extends Document {
   // leak can't be used to reset accounts directly.
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
+  failedLoginAttempts?: number;
+  lastFailedLogin?: Date;
+  lockUntil?: Date;
+  profilePic?: string;
+  profilePicPublicId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -118,6 +123,22 @@ const userSchema = new Schema<IUser>(
     resetPasswordExpires: {
       type: Date,
       select: false,
+    },
+    failedLoginAttempts: {
+      type: Number,
+      default: 0,
+    },
+    lastFailedLogin: {
+      type: Date,
+    },
+    lockUntil: {
+      type: Date,
+    },
+    profilePic: {
+      type: String,
+    },
+    profilePicPublicId: {
+      type: String,
     },
   },
   {

@@ -1,7 +1,8 @@
 import express from "express";
 
-import { protect } from "../middlewares/auth";
-import { adminOnly } from "../middlewares/admin";
+import { protect } from "../middlewares/auth.js";
+import { adminOnly } from "../middlewares/admin.js";
+import { customerOnly } from "../middlewares/customer.js";
 
 import {
   createCoupon,
@@ -9,7 +10,7 @@ import {
   applyCoupon,
   updateCoupon,
   deleteCoupon,
-} from "../controllers/couponController";
+} from "../controllers/couponController.js";
 
 const router = express.Router();
 
@@ -49,6 +50,8 @@ router.get(
 // USER
 router.post(
   "/apply",
+  protect,
+  customerOnly,
   applyCoupon
 );
 

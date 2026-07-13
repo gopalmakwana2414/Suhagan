@@ -10,8 +10,20 @@
  */
 
 import nodemailer from "nodemailer";
-import { env } from "../config/env";
-import { getOrderConfirmationTemplate } from "./emailTemplateService";
+import { env } from "../config/env.js";
+import { User } from "../models/User.js";
+import {
+  getOrderConfirmationTemplate,
+  getRegistrationOTPTemplate,
+  getForgotPasswordOTPTemplate,
+  getEmailChangeOTPTemplate,
+  getPasswordChangedTemplate,
+  getWelcomeEmailTemplate,
+  getAccountLockedTemplate,
+  getPasswordResetSuccessfulTemplate,
+  getAdminLoginOTPTemplate,
+  getAdminOrderAlertTemplate,
+} from "./emailTemplateService.js";
 
 // created lazily so just importing this file doesn't blow up if SMTP
 // env vars aren't set yet — only errors once you actually try to send
@@ -76,16 +88,7 @@ export const sendWelcomeEmail = async ({
   to: string;
   customerName: string;
 }): Promise<void> => {
-  const html = wrapTemplate(
-    `Welcome, ${customerName}! 🌸`,
-    `<p>Thank you for creating an account with KAUMUDI. Explore our handcrafted
-     collection of Banarasi, Kanjivaram, Silk and Designer sarees, curated for
-     every occasion.</p>
-     <p><a href="${env.FRONTEND_URL}/shop" style="display:inline-block;background:${BRAND_COLOR};color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;margin-top:8px;">
-       Start Shopping
-     </a></p>`
-  );
-
+  const html = getWelcomeEmailTemplate(customerName);
   await send(to, "Welcome to KAUMUDI 🌸", html);
 };
 
@@ -221,27 +224,16 @@ export const sendOrderConfirmationEmail = async (data: {
 };
 
 // admin new order alert
-export const sendAdminOrderAlert = async (data: {
-  orderId: string;
-  customerName: string;
-  customerEmail: string;
-  totalAmount: number;
-  paymentMethod: string;
-  itemCount: number;
-}): Promise<void> => {
-  const html = wrapTemplate(
-    "🛍️ New Order Received",
-    `<p><strong>Order:</strong> #${data.orderId.slice(-8).toUpperCase()}</p>
-     <p><strong>Customer:</strong> ${data.customerName} (${data.customerEmail})</p>
-     <p><strong>Items:</strong> ${data.itemCount}</p>
-     <p><strong>Total:</strong> ₹${data.totalAmount.toLocaleString("en-IN")}</p>
-     <p><strong>Payment:</strong> ${data.paymentMethod}</p>
-     <p><a href="${env.FRONTEND_URL}/admin/orders" style="display:inline-block;background:${BRAND_COLOR};color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;margin-top:8px;">
-       View in Admin Panel
-     </a></p>`
-  );
+export const sendAdminOrderAlert = async (order: any): Promise<void> => {
+  const adminUser = await User.findOne({ role: "admin" }).select("email").lean();
+  const adminEmail = adminUser?.email || env.ADMIN_EMAIL || "admin@kaumudi.com";
 
-  await send(env.ADMIN_EMAIL, `New Order: ₹${data.totalAmount.toLocaleString("en-IN")}`, html);
+  const orderIdShort = order._id.toString().slice(-8).toUpperCase();
+  const year = new Date(order.createdAt).getFullYear();
+  const subject = `🛍️ New Order Received - Order #KM${year}${orderIdShort}`;
+
+  const html = getAdminOrderAlertTemplate(order);
+  await send(adminEmail, subject, html);
 };
 
 // contact form email
@@ -265,6 +257,91 @@ export const sendContactEmail = async (data: {
   await send(env.ADMIN_EMAIL, `Contact Form: ${data.name}`, html);
 };
 
+// registration otp email
+export const sendRegistrationOTPEmail = async ({
+  to,
+  otp,
+}: {
+  to: string;
+  otp: string;
+}): Promise<void> => {
+  const html = getRegistrationOTPTemplate(otp);
+  await send(to, "Verify Your KAUMUDI Account Registration", html);
+};
+
+// forgot password otp email
+export const sendForgotPasswordOTPEmail = async ({
+  to,
+  otp,
+}: {
+  to: string;
+  otp: string;
+}): Promise<void> => {
+  const html = getForgotPasswordOTPTemplate(otp);
+  await send(to, "Reset Your KAUMUDI Password", html);
+};
+
+// email change otp email
+export const sendEmailChangeOTPEmail = async ({
+  to,
+  otp,
+}: {
+  to: string;
+  otp: string;
+}): Promise<void> => {
+  const html = getEmailChangeOTPTemplate(otp);
+  await send(to, "Confirm Your New Email Address - KAUMUDI", html);
+};
+
+// password changed alert email
+export const sendPasswordChangedEmail = async ({
+  to,
+  customerName,
+}: {
+  to: string;
+  customerName: string;
+}): Promise<void> => {
+  const html = getPasswordChangedTemplate(customerName);
+  await send(to, "Security Alert: KAUMUDI Password Changed", html);
+};
+
+// account locked email
+export const sendAccountLockedEmail = async ({
+  to,
+  customerName,
+  lockDurationMinutes,
+}: {
+  to: string;
+  customerName: string;
+  lockDurationMinutes: number;
+}): Promise<void> => {
+  const html = getAccountLockedTemplate(customerName, lockDurationMinutes);
+  await send(to, "Security Alert: KAUMUDI Account Locked", html);
+};
+
+// password reset success email
+export const sendPasswordResetSuccessEmail = async ({
+  to,
+  customerName,
+}: {
+  to: string;
+  customerName: string;
+}): Promise<void> => {
+  const html = getPasswordResetSuccessfulTemplate(customerName);
+  await send(to, "KAUMUDI Password Reset Successful", html);
+};
+
+export const sendAdminLoginOTPEmail = async ({
+  to,
+  otp,
+}: {
+  to: string;
+  otp: string;
+}): Promise<void> => {
+  const html = getAdminLoginOTPTemplate(otp);
+  await send(to, "KAUMUDI Admin Login Verification Code", html);
+};
+
 export default {
   sendWelcomeEmail,
   sendOTPEmail,
@@ -273,4 +350,11 @@ export default {
   sendOrderConfirmationEmail,
   sendAdminOrderAlert,
   sendContactEmail,
+  sendRegistrationOTPEmail,
+  sendForgotPasswordOTPEmail,
+  sendEmailChangeOTPEmail,
+  sendPasswordChangedEmail,
+  sendAccountLockedEmail,
+  sendPasswordResetSuccessEmail,
+  sendAdminLoginOTPEmail,
 };

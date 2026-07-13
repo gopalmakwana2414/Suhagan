@@ -22,6 +22,7 @@ const envSchema = z.object({
   REDIS_HOST: z.string().default("127.0.0.1"),
   REDIS_PORT: z.coerce.number().default(6379),
   REDIS_PASSWORD: z.string().optional(),
+  REDIS_TLS: z.preprocess((val) => val === "true" || val === "1" || val === true, z.boolean()).default(false),
 
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
 

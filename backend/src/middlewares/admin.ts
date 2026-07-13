@@ -6,14 +6,14 @@ export const adminOnly = (
   res: Response,
   next: NextFunction
 ): void => {
-  if (!req.user) {
+  if (!req.user || !req.jwtPayload) {
     res.status(401).json({
       message: "Unauthorized",
     });
     return;
   }
 
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin" || req.jwtPayload.role !== "admin") {
     res.status(403).json({
       message: "Admin access required",
     });

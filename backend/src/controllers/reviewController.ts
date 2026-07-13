@@ -89,9 +89,15 @@ export const deleteReview = async (
 
     // Allow admin OR the review owner to delete
     const isOwner = review.user.toString() === req.user!._id.toString();
-    const isAdmin = req.user!.role === "admin";
+    const isUserCustomer = req.user!.role === "customer" || req.user!.role === "user";
+    const isJwtCustomer = req.jwtPayload?.role === "customer" || req.jwtPayload?.role === "user";
+    const isCustomer = isUserCustomer && isJwtCustomer;
 
-    if (!isOwner && !isAdmin) {
+    const isUserAdmin = req.user!.role === "admin";
+    const isJwtAdmin = req.jwtPayload?.role === "admin";
+    const isAdmin = isUserAdmin && isJwtAdmin;
+
+    if (!((isOwner && isCustomer) || isAdmin)) {
       return res.status(403).json({
         message: "Unauthorized",
       });

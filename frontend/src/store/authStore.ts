@@ -15,7 +15,7 @@ interface AuthStore {
   user: User | null;
   token: string | null;
   login: (user: User, token: string) => void;
-  logout: () => void;
+  logout: () => void | Promise<void>;
   // kept for backward compat — persist middleware handles rehydration now
   loadUser: () => void;
 }
@@ -54,7 +54,12 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
-      logout: () => {
+      logout: async () => {
+        try {
+          await api.post("/auth/logout");
+        } catch (err) {
+          console.error("Backend logout failed:", err);
+        }
         set({ user: null, token: null });
         useCartStore.getState().clearCart();
         queryClient.clear();

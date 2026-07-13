@@ -5,6 +5,9 @@ export interface IOtp extends Document {
   otpHash: string; // bcrypt hash of the OTP, cleared after verification
   expiresAt: Date; // TTL expiry
   verified: boolean; // flag indicating if identifier is verified
+  resendAttempts?: number;
+  verifyAttempts?: number;
+  lastResentAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,6 +31,17 @@ const otpSchema = new Schema<IOtp>(
     verified: {
       type: Boolean,
       default: false,
+    },
+    resendAttempts: {
+      type: Number,
+      default: 0,
+    },
+    verifyAttempts: {
+      type: Number,
+      default: 0,
+    },
+    lastResentAt: {
+      type: Date,
     },
   },
   {

@@ -4,6 +4,8 @@ import helmet from "helmet";
 import morgan from "morgan";
 import compression from "compression";
 import cookieParser from "cookie-parser";
+import mongoose from "mongoose";
+import { checkRedisConnection, isRedisHealthy } from "./config/redis.js";
 
 import authRoutes from "./routes/authRoutes";
 import categoryRoutes from "./routes/categoryRoutes";
@@ -101,10 +103,24 @@ app.use("/api/banners", bannerRoutes);
 app.use("/api/contact", contactLimiter, contactRoutes);
 
 // Health Check
-app.get("/health", (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "Kaumudi API is running",
+app.get("/health", async (req, res) => {
+  const dbConnected = mongoose.connection.readyState === 1;
+  const redisConnected = checkRedisConnection();
+  const redisHealthy = await isRedisHealthy();
+
+  const isProd = process.env.NODE_ENV === "production";
+  
+  // In production, Redis is strictly required for API to be considered healthy
+  const healthy = dbConnected && (!isProd || redisHealthy);
+  const status = healthy ? 200 : 503;
+
+  res.status(status).json({
+    success: healthy,
+    message: healthy ? "Kaumudi API is healthy" : "Kaumudi API is unhealthy",
+    services: {
+      database: dbConnected ? "connected" : "disconnected",
+      redis: redisConnected ? (redisHealthy ? "healthy" : "connected but unhealthy") : "disconnected",
+    },
     timestamp: new Date().toISOString(),
   });
 });

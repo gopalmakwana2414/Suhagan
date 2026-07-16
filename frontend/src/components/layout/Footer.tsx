@@ -12,7 +12,7 @@ export default function Footer() {
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-12 pb-16 border-b border-white/5">
           {/* Brand */}
           <div className="space-y-6">
-            <Logo className="brightness-0 invert scale-105 origin-left" />
+            <Logo className="brightness-0 invert" />
             <p className="text-gray-400 text-sm leading-8 font-light">
               Premium handcrafted sarees from Surat — Banarasi, Kanjivaram, Silk, and designer weaves. Drape yourself in centuries of Indian textile heritage.
             </p>

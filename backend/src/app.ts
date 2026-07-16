@@ -22,6 +22,7 @@ import paymentRoutes from "./routes/paymentRoutes";
 import bannerRoutes from "./routes/bannerRoutes";
 import homeBackgroundRoutes from "./routes/homeBackgroundRoutes";
 import contactRoutes from "./routes/contactRoutes";
+import subscriberRoutes from "./routes/subscriberRoutes";
 
 import { apiLimiter, contactLimiter } from "./middlewares/rateLimiter";
 import { notFound, errorHandler } from "./middlewares/error";
@@ -103,6 +104,8 @@ app.use("/api/banners", bannerRoutes);
 app.use("/api/home-backgrounds", homeBackgroundRoutes);
 
 app.use("/api/contact", contactLimiter, contactRoutes);
+
+app.use("/api/subscribers", subscriberRoutes);
 
 // Health Check
 app.get("/health", async (req, res) => {

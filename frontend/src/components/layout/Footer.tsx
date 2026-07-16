@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import Logo from "@/components/ui/Logo";
 import { toast } from "sonner";
+import api from "@/lib/api";
+import { useAuthStore } from "@/store/authStore";
 
 // Custom Payment Icons for Uniform Luxury Aesthetic
 const VisaIcon = () => (
@@ -58,24 +60,40 @@ const RazorpayIcon = () => (
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const { user } = useAuthStore();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (user) {
+      setEmail(user.email);
+    } else {
+      setEmail("");
+    }
+  }, [user]);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      toast.error("Please log in to subscribe to the newsletter.");
+      return;
+    }
     if (!email) {
       toast.error("Please enter a valid email address.");
       return;
     }
     setIsLoading(true);
-    // Simulate subscribe with beautiful success state
-    setTimeout(() => {
-      toast.success("Welcome to the Kaumudi Circle! Exclusive previews await you.");
+    try {
+      const response = await api.post("/subscribers", { email });
+      toast.success(response.data?.message || "Welcome to the Kaumudi Circle! Exclusive previews await you.");
       setIsSubscribed(true);
       setEmail("");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to subscribe. Please try again.");
+    } finally {
       setIsLoading(false);
-    }, 1200);
+    }
   };
 
   const trustFeatures = [
@@ -347,22 +365,24 @@ export default function Footer() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Email Address"
-                      className="w-full bg-white/[0.03] border border-white/15 hover:border-white/25 focus:border-accent-gold focus:ring-1 focus:ring-accent-gold px-4 py-3 text-sm text-white placeholder-gray-500 outline-none transition-all duration-300 font-light rounded-md"
+                      placeholder={user ? "Email Address" : "Please log in to subscribe"}
+                      className="w-full bg-white/[0.03] border border-white/15 hover:border-white/25 focus:border-accent-gold focus:ring-1 focus:ring-accent-gold px-4 py-3 text-sm text-white placeholder-gray-500 outline-none transition-all duration-300 font-light rounded-md disabled:opacity-50"
                       aria-label="Email Address for Newsletter"
                       required
                       suppressHydrationWarning
+                      disabled={!user}
+                      readOnly={!!user}
                     />
                   </div>
                   <motion.button
                     type="submit"
-                    disabled={isLoading}
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                    className="w-full bg-accent-gold hover:bg-[#C5A059] text-[#1a0005] py-3 rounded-md font-semibold text-xs uppercase tracking-widest transition-all duration-300 hover:tracking-[0.2em] flex items-center justify-center gap-2 group cursor-pointer shadow-md disabled:opacity-70"
+                    disabled={isLoading || !user}
+                    whileHover={user ? { scale: 1.01 } : {}}
+                    whileTap={user ? { scale: 0.99 } : {}}
+                    className="w-full bg-accent-gold hover:bg-[#C5A059] text-[#1a0005] py-3 rounded-md font-semibold text-xs uppercase tracking-widest transition-all duration-300 hover:tracking-[0.2em] flex items-center justify-center gap-2 group cursor-pointer shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                     suppressHydrationWarning
                   >
-                    {isLoading ? "Subscribing..." : "Subscribe"}
+                    {isLoading ? "Subscribing..." : user ? "Subscribe" : "Log In to Subscribe"}
                     <ArrowRight size={13} className="transition-transform duration-300 group-hover:translate-x-1" />
                   </motion.button>
                 </motion.form>

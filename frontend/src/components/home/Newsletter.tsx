@@ -1,28 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useAuthStore } from "@/store/authStore";
 import { Mail, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 import ScrollReveal from "@/components/ui/ScrollReveal";
+import api from "@/lib/api";
 
 export default function Newsletter() {
+  const { user } = useAuthStore();
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (user) {
+      setEmail(user.email);
+    } else {
+      setEmail("");
+    }
+  }, [user]);
+
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!user) {
+      toast.error("Please log in to subscribe to our newsletter.");
+      return;
+    }
     if (!email) {
       toast.error("Please enter a valid email address.");
       return;
     }
     setIsLoading(true);
-    // Simulate subscribe
-    setTimeout(() => {
-      toast.success("Welcome to the Kaumudi Circle! Exclusive previews await you.");
+    try {
+      const response = await api.post("/subscribers", { email });
+      toast.success(response.data?.message || "Welcome to the Kaumudi Circle! Exclusive previews await you.");
       setEmail("");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Failed to subscribe. Please try again.");
+    } finally {
       setIsLoading(false);
-    }, 800);
+    }
   };
 
   return (
@@ -58,21 +76,23 @@ export default function Newsletter() {
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Enter your email address"
-                      className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 hover:border-white/20 focus:border-accent-gold rounded-full text-white placeholder-gray-400 outline-none text-sm transition-all"
+                      placeholder={user ? "Enter your email address" : "Please log in to join"}
+                      className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 hover:border-white/20 focus:border-accent-gold rounded-full text-white placeholder-gray-400 outline-none text-sm transition-all disabled:opacity-50"
                       required
+                      disabled={!user}
+                      readOnly={!!user}
                     />
                   </div>
 
                   <motion.button
                     suppressHydrationWarning
-                    whileHover={{ scale: 1.03 }}
-                    whileTap={{ scale: 0.97 }}
+                    whileHover={user ? { scale: 1.03 } : {}}
+                    whileTap={user ? { scale: 0.97 } : {}}
                     type="submit"
-                    disabled={isLoading}
-                    className="bg-accent-gold hover:bg-[#C5A059] text-[#1a0004] px-7 py-3.5 rounded-full text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-1.5 transition-all duration-300 cursor-pointer shadow-lg disabled:opacity-70 whitespace-nowrap"
+                    disabled={isLoading || !user}
+                    className="bg-accent-gold hover:bg-[#C5A059] text-[#1a0004] px-7 py-3.5 rounded-full text-xs uppercase tracking-widest font-bold flex items-center justify-center gap-1.5 transition-all duration-300 cursor-pointer shadow-lg disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                   >
-                    {isLoading ? "Subscribing..." : "Join Now"}
+                    {isLoading ? "Subscribing..." : user ? "Join Now" : "Log In to Join"}
                     <ArrowRight size={13} />
                   </motion.button>
                 </div>

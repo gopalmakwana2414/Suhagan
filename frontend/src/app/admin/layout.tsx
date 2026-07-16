@@ -16,6 +16,7 @@ import {
   LogOut,
   Menu,
   X,
+  Mail,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -28,6 +29,7 @@ const NAV_LINKS = [
   { href: "/admin/reviews", label: "Reviews", icon: <Star size={18} /> },
   { href: "/admin/coupons", label: "Coupons", icon: <Ticket size={18} /> },
   { href: "/admin/home-backgrounds", label: "Home Backgrounds", icon: <ImageIcon size={18} /> },
+  { href: "/admin/subscribers", label: "Subscribers", icon: <Mail size={18} /> },
 ];
 
 export default function AdminLayout({

@@ -201,6 +201,7 @@ export default function Navbar() {
                     className="text-gray-600 hover:text-primary focus:outline-none shrink-0 cursor-pointer flex items-center justify-center"
                     aria-label="Search sarees"
                     aria-expanded={isExpanded}
+                    suppressHydrationWarning
                   >
                     <Search size={20} />
                   </button>

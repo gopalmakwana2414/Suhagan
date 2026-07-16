@@ -89,6 +89,7 @@ export default function RootLayout({
             richColors
             position="top-right"
             closeButton
+            duration={4000}
           />
 
           <WhatsAppButton />
